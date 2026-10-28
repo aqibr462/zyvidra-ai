@@ -117,7 +117,7 @@ form.addEventListener("submit", async (event) => {
 
   if (selectedImageData) {
     showError(
-      "Reference-image uploading is not connected yet. Please remove the image and submit without it for now."
+      "Image uploading is not connected yet. Remove the image and submit without it for now."
     );
     return;
   }
@@ -132,7 +132,6 @@ form.addEventListener("submit", async (event) => {
 
   try {
     const data = new FormData(form);
-
     const customerName = String(data.get("customerName") || "").trim();
     const email = String(data.get("email") || "").trim();
     const prompt = promptInput.value.trim();
@@ -154,20 +153,20 @@ form.addEventListener("submit", async (event) => {
 
     const request = {
       model: normalizeModel(data.get("model")),
-      prompt,
+      prompt: prompt,
       duration_seconds: duration,
       aspect_ratio: normalizeRatio(data.get("ratio")),
       visual_style: String(data.get("style") || ""),
       audio_preference: String(data.get("audio") || ""),
       intended_platform: String(data.get("useCase") || ""),
       customer_name: customerName,
-      email,
+      email: email,
       status: "pending",
       final_video_url: null
     };
 
     const response = await fetch(
-      `${SUPABASE_URL.replace(/\/+$/, "")}/rest/v1/video_requests`,
+      `${SUPABASE_URL}/rest/v1/video_requests`,
       {
         method: "POST",
         headers: {
@@ -182,33 +181,21 @@ form.addEventListener("submit", async (event) => {
 
     if (!response.ok) {
       const details = await response.text();
-      console.error("Supabase error:", response.status, details);
-
-      if (response.status === 401 || response.status === 403) {
-        throw new Error(
-          "Supabase rejected the request. Please check your database permissions and security policy."
-        );
-      }
-
-      if (response.status === 400 || response.status === 404) {
-        throw new Error(
-          "The request format or database columns may not match. Please share the browser error with me."
-        );
-      }
+      console.error("Supabase submission error:", response.status, details);
 
       throw new Error(
-        "Your request could not be saved. Please try again."
+        `Request failed (${response.status}). Please tell me this error code so we can fix it.`
       );
     }
 
     document.getElementById("successText").textContent =
-      "Your video request was submitted successfully! Your request has been received and is pending review.";
+      "Your request has been submitted successfully and is now pending review.";
 
     dialog.showModal();
-
     form.reset();
     clearImage();
     charCount.textContent = "0 / 2000";
+
   } catch (error) {
     showError(error.message || "Something went wrong. Please try again.");
   } finally {

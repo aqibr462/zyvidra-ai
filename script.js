@@ -484,9 +484,7 @@ form.addEventListener("submit", async (event) => {
     validateFile(lastFrame, "image");
     validateFile(referenceVideo, "video");
 
-    if (!document.getElementById("rights").checked) {
-      throw new Error("Please confirm you have permission to use your files.");
-    }
+    
 
     submitButton.disabled = true;
     submitButton.textContent = "Uploading and submitting...";

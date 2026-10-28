@@ -39,7 +39,6 @@ const extraUploadFields = document.querySelector(".extra-upload-fields");
 const extraUploadHint =
   extraUploadFields?.querySelector(".field-hint");
 
-const customerNameInput = document.getElementById("customerName");
 const customerEmailInput = document.getElementById("email");
 
 document.getElementById("year").textContent =
@@ -91,9 +90,7 @@ function updateAccountUI(session) {
     const user = session.user;
     const name = user.user_metadata?.full_name || "";
 
-    if (customerNameInput) {
-  customerNameInput.value = name;
-  customerNameInput.readOnly = !name;
+    
 }
     }
 
@@ -104,7 +101,7 @@ function updateAccountUI(session) {
 
     showAuthMessage("You are signed in.");
   } else {
-    if (customerNameInput) customerNameInput.value = "";
+  
     if (customerEmailInput) customerEmailInput.value = "";
   }
 

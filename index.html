@@ -78,6 +78,35 @@
 
     <section class="request-section section" id="request">
       <div class="request-intro"><div class="eyebrow">START A PROJECT</div><h2>Tell us what<br>you want to create.</h2><p>Build a clear creative brief with your preferred model, length, aspect ratio, style, and optional reference image. Your request form is currently a front-end demo; secure order delivery will be connected separately.</p><div class="mini-note"><span>🔒</span><div><strong>Keep your images private</strong><p>Do not upload sensitive or confidential images to this prototype. It does not send files to a server.</p></div></div></div>
+ 
+<div id="authPanel">
+  <h2>Welcome to Zyvidra</h2>
+  <p>Sign in or create an account to submit video requests.</p>
+
+  <label for="authEmail">Email address</label>
+  <input
+    type="email"
+    id="authEmail"
+    autocomplete="email"
+    placeholder="you@example.com"
+    required
+  >
+
+  <label for="authPassword">Password</label>
+  <input
+    type="password"
+    id="authPassword"
+    autocomplete="current-password"
+    placeholder="Enter your password"
+    required
+  >
+
+  <button type="button" id="loginButton">Sign In</button>
+  <button type="button" id="signupButton">Create Account</button>
+  <button type="button" id="logoutButton" hidden>Sign Out</button>
+
+  <p id="authMessage" role="status"></p>
+</div>
       <form class="request-form" id="requestForm">
 
 <label for="creationMode">Video creation mode *</label>

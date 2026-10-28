@@ -92,8 +92,9 @@ function updateAccountUI(session) {
     const name = user.user_metadata?.full_name || "";
 
     if (customerNameInput) {
-      customerNameInput.value = name;
-      customerNameInput.readOnly = true;
+  customerNameInput.value = name;
+  customerNameInput.readOnly = !name;
+}
     }
 
     if (customerEmailInput) {

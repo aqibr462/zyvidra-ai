@@ -109,6 +109,36 @@
         <label for="reference">Reference image (optional)</label>
         <label class="upload-zone" for="reference"><span class="upload-icon">↑</span><strong id="uploadTitle">Choose an image or drop it here</strong><small id="uploadHint">PNG, JPG or WEBP · maximum 8 MB in this demo</small><input id="reference" name="reference" type="file" accept="image/png,image/jpeg,image/webp"></label>
         <div id="imagePreview" class="image-preview" hidden><img id="previewImg" alt="Selected reference preview"><div><strong id="fileName"></strong><small id="fileSize"></small></div><button type="button" id="removeImage" class="remove-btn">Remove</button></div>
+    
+<div class="extra-upload-fields">
+  <label for="firstFrame">First frame image (optional)</label>
+  <input
+    id="firstFrame"
+    name="firstFrame"
+    type="file"
+    accept="image/jpeg,image/png,image/webp"
+  >
+
+  <label for="lastFrame">Last frame image (optional)</label>
+  <input
+    id="lastFrame"
+    name="lastFrame"
+    type="file"
+    accept="image/jpeg,image/png,image/webp"
+  >
+
+  <label for="referenceVideo">Reference video (optional)</label>
+  <input
+    id="referenceVideo"
+    name="referenceVideo"
+    type="file"
+    accept="video/mp4,video/webm"
+  >
+
+  <p class="field-hint">
+    Images: JPG, PNG or WEBP. Videos: MP4 or WEBM. Maximum upload size: 50 MB.
+  </p>
+</div>
         <div class="form-row">
           <div><label for="customerName">Your name *</label><input id="customerName" name="customerName" autocomplete="name" placeholder="Name" required maxlength="100"></div>
           <div><label for="email">Email address *</label><input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254"></div>

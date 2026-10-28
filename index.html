@@ -79,6 +79,14 @@
     <section class="request-section section" id="request">
       <div class="request-intro"><div class="eyebrow">START A PROJECT</div><h2>Tell us what<br>you want to create.</h2><p>Build a clear creative brief with your preferred model, length, aspect ratio, style, and optional reference image. Your request form is currently a front-end demo; secure order delivery will be connected separately.</p><div class="mini-note"><span>🔒</span><div><strong>Keep your images private</strong><p>Do not upload sensitive or confidential images to this prototype. It does not send files to a server.</p></div></div></div>
       <form class="request-form" id="requestForm">
+
+<label for="creationMode">Video creation mode *</label>
+<select id="creationMode" name="creationMode" required>
+  <option value="text_to_video">Text to Video — prompt only</option>
+  <option value="first_frame">First Frame to Video</option>
+  <option value="first_last_frame">First Frame + Last Frame</option>
+  <option value="reference_media">Reference Image or Video</option>
+</select>
         <div class="form-title"><div><h3>Video request</h3><p>Fields marked * are required.</p></div><span class="form-step">01 / 01</span></div>
         <label for="model">AI model *</label>
         <div class="model-select">

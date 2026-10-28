@@ -334,3 +334,67 @@ if (zone) {
     referenceInput.dispatchEvent(new Event("change"));
   });
 }
+
+const creationModeSelect = document.getElementById("creationMode");
+const extraUploadFields = document.querySelector(".extra-upload-fields");
+const extraUploadHint = extraUploadFields?.querySelector(".field-hint");
+
+function updateUploadFields() {
+  const mode = creationModeSelect.value;
+
+  const showFirstFrame =
+    mode === "first_frame" || mode === "first_last_frame";
+
+  const showLastFrame = mode === "first_last_frame";
+  const showReferenceMedia = mode === "reference_media";
+
+  function setFieldVisibility(input, visible) {
+    if (!input) return;
+
+    input.hidden = !visible;
+
+    const label = input.previousElementSibling;
+
+    if (label && label.tagName === "LABEL") {
+      label.hidden = !visible;
+    }
+  }
+
+  setFieldVisibility(firstFrameInput, showFirstFrame);
+  setFieldVisibility(lastFrameInput, showLastFrame);
+  setFieldVisibility(referenceVideoInput, showReferenceMedia);
+
+  if (extraUploadFields) {
+    extraUploadFields.hidden =
+      !showFirstFrame && !showLastFrame && !showReferenceMedia;
+  }
+
+  if (extraUploadHint) {
+    extraUploadHint.hidden =
+      !showFirstFrame && !showLastFrame && !showReferenceMedia;
+  }
+
+  if (zone) {
+    zone.hidden = !showReferenceMedia;
+  }
+
+  if (!showReferenceMedia && referenceInput) {
+    referenceInput.value = "";
+    clearImage();
+  }
+
+  if (!showFirstFrame && firstFrameInput) {
+    firstFrameInput.value = "";
+  }
+
+  if (!showLastFrame && lastFrameInput) {
+    lastFrameInput.value = "";
+  }
+
+  if (!showReferenceMedia && referenceVideoInput) {
+    referenceVideoInput.value = "";
+  }
+}
+
+creationModeSelect.addEventListener("change", updateUploadFields);
+updateUploadFields();

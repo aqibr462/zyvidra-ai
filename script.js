@@ -775,22 +775,21 @@ async function submitVideoRequest(event) {
       );
     }
 
-    setMessage(
-      formMessage,
-      "Your video request has been submitted."
-    );
+    
+setMessage(formMessage, "");
 
-    if (successText) {
-      successText.textContent =
-        "Your request was submitted successfully. " +
-        "You can track its progress in your dashboard.";
-    }
+if (successText) {
+  successText.textContent =
+    "Your request has been received successfully.";
+  successText.hidden = false;
+}
 
-    if (successDialog?.showModal) {
-      successDialog.showModal();
-    } else if (successDialog) {
-      successDialog.hidden = false;
-    }
+if (successDialog?.showModal) {
+  successDialog.showModal();
+} else if (successDialog) {
+  successDialog.hidden = false;
+}
+
 
     requestForm.reset();
 

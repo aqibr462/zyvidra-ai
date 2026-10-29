@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -469,6 +468,30 @@
           hidden
         ></div>
       </form>
+
+      <!-- CUSTOMER DASHBOARD: shown to signed-in customers -->
+      <section id="dashboardPanel" class="dashboard-panel" hidden>
+        <div class="section-heading">
+          <div>
+            <div class="eyebrow">YOUR STUDIO</div>
+            <h2>My Video Requests</h2>
+          </div>
+
+          <button
+            type="button"
+            id="refreshRequests"
+            class="button secondary"
+          >
+            Refresh
+          </button>
+        </div>
+
+        <p id="dashboardMessage" role="status" aria-live="polite">
+          Your requests will appear here.
+        </p>
+
+        <div id="requestList" class="request-list"></div>
+      </section>
     </section>
   </main>
 
@@ -487,33 +510,14 @@
 
   <dialog id="successDialog" class="success-dialog">
     <div class="success-mark">✓</div>
-
-    <div class="eyebrow">REQUEST CONFIRMED</div>
-
-    <h2>Your request has been received successfully.</h2>
-
-    <p>
-      Your creative brief has been submitted successfully and is now awaiting production.
+    <div class="eyebrow">REQUEST RECEIVED</div>
+    <h2>Your request has been submitted.</h2>
+    <p id="successText">
+      Your request has been submitted and is pending review.
     </p>
-
     <div class="dialog-warning">
-      <strong>Your video is in the queue!</strong>
-
-      <p><strong>Status: In Queue</strong></p>
-
-      <p>
-        Your request will be processed in order. You can check its progress
-        from your dashboard.
-      </p>
-
-      <p>
-        Generation begins when production is started by the Zyvidra team.
-      </p>
+      Submission does not automatically start video generation.
     </div>
-
-    <!-- Kept for compatibility with the current script.js -->
-    <p id="successText" hidden></p>
-
     <div class="dialog-actions">
       <button class="button primary" id="closeDialog" type="button">
         Got it

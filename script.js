@@ -780,10 +780,10 @@ setMessage(formMessage, "");
 
 if (successText) {
   successText.textContent =
-    "Your request has been received successfully.";
-  successText.hidden = false;
+    "Your video request has been received successfully and added to the queue. " +
+    "Video generation does not start automatically. " +
+    "You can track your request status from your dashboard.";
 }
-
 if (successDialog?.showModal) {
   successDialog.showModal();
 } else if (successDialog) {

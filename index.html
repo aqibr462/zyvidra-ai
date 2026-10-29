@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -469,7 +470,7 @@
         ></div>
       </form>
 
-      <!-- CUSTOMER DASHBOARD: shown to signed-in customers -->
+      <!-- CUSTOMER DASHBOARD -->
       <section id="dashboardPanel" class="dashboard-panel" hidden>
         <div class="section-heading">
           <div>
@@ -491,6 +492,31 @@
         </p>
 
         <div id="requestList" class="request-list"></div>
+      </section>
+
+      <!-- ADMIN DASHBOARD: hidden until admin access is verified -->
+      <section id="adminPanel" class="dashboard-panel" hidden>
+        <div class="section-heading">
+          <div>
+            <div class="eyebrow">ZYVIDRA MANAGEMENT</div>
+            <h2>Admin Dashboard</h2>
+            <p>Review requests and update video delivery status.</p>
+          </div>
+
+          <button
+            type="button"
+            id="refreshAdminRequests"
+            class="button secondary"
+          >
+            Refresh Requests
+          </button>
+        </div>
+
+        <p id="adminMessage" role="status" aria-live="polite">
+          Checking administrator access...
+        </p>
+
+        <div id="adminRequestList" class="request-list"></div>
       </section>
     </section>
   </main>

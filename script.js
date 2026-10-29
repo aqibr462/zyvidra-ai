@@ -90,10 +90,12 @@ let adminLoadId = 0;
 
 /* ===================== GENERAL HELPERS ===================== */
 
+/* FIX: Make messages visible when they contain text. */
 function setMessage(element, message, isError = false) {
   if (!element) return;
 
   element.textContent = message;
+  element.hidden = !message;
   element.classList.toggle("error", isError);
 }
 

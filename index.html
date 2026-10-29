@@ -80,7 +80,8 @@
 </header>
 
 <main>
-  <!-- HOME / HERO -->
+
+  <!-- HOME / HERO — KEEP DESIGN -->
   <section class="hero" id="home">
     <div class="hero-copy">
       <div class="eyebrow"><span class="live-dot"></span> AI VIDEO CREATION STUDIO</div>
@@ -126,53 +127,311 @@
     </div>
   </section>
 
-  <!-- MODELS -->
+  <!-- HERO CARDS / MODELS — KEEP DESIGN -->
   <section class="models section" id="models">
     <div class="section-heading">
-      <div><div class="eyebrow">CREATIVE ENGINES</div><h2>Choose your creative engine.</h2></div>
+      <div>
+        <div class="eyebrow">CREATIVE ENGINES</div>
+        <h2>Choose your creative engine.</h2>
+      </div>
       <p>Choose an available model for your video request.</p>
     </div>
+
     <div class="model-grid">
       <article class="model-card featured">
-        <div class="model-top"><span class="model-icon purple">V</span><span class="model-tag">MODEL 01</span></div>
+        <div class="model-top">
+          <span class="model-icon purple">V</span>
+          <span class="model-tag">MODEL 01</span>
+        </div>
         <h3>Veo 3</h3>
         <p>For cinematic scenes, expressive motion, and polished visual storytelling.</p>
-        <div class="model-footer"><span>Image + prompt requests</span><a href="#request" class="arrow" aria-label="Request Veo 3">↗</a></div>
+        <div class="model-footer">
+          <span>Image + prompt requests</span>
+          <a href="#request" class="arrow" aria-label="Request Veo 3">↗</a>
+        </div>
       </article>
+
       <article class="model-card">
-        <div class="model-top"><span class="model-icon blue">O</span><span class="model-tag">MODEL 02</span></div>
+        <div class="model-top">
+          <span class="model-icon blue">O</span>
+          <span class="model-tag">MODEL 02</span>
+        </div>
         <h3>Omni Flash</h3>
         <p>For creative workflows and image-led video concepts, depending on tool availability.</p>
-        <div class="model-footer"><span>Image + prompt requests</span><a href="#request" class="arrow" aria-label="Request Omni Flash">↗</a></div>
+        <div class="model-footer">
+          <span>Image + prompt requests</span>
+          <a href="#request" class="arrow" aria-label="Request Omni Flash">↗</a>
+        </div>
       </article>
     </div>
+
     <p class="fine-print">Requests are reviewed and produced manually. Model capabilities, duration, audio and availability depend on current studio access. Submitting a request does not automatically start video generation.</p>
   </section>
 
-  <!-- FEATURES -->
+  <!-- VIDEO GENERATION STUDIO — MOVED UP UNDER HERO CARDS -->
+  <section class="request-section section" id="request">
+    <div class="request-intro" id="contact">
+      <div class="eyebrow">LET'S CREATE SOMETHING</div>
+      <h2>Your next video<br>starts here.</h2>
+      <p>Sign in, tell us what you want to create, and submit your video brief. You can follow your requests from your dashboard.</p>
+
+      <div class="mini-note">
+        <span>🔒</span>
+        <div>
+          <strong>Your files matter</strong>
+          <p>Reference uploads are stored in private storage. Avoid uploading sensitive or confidential material.</p>
+        </div>
+      </div>
+
+      <div class="contact-card">
+        <span>✦</span>
+        <div>
+          <strong>Made for creators</strong>
+          <p>Social videos, brand concepts, product visuals, and personal creative projects.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUTHENTICATION -->
+    <div id="authPanel" class="auth-panel">
+      <div class="auth-heading">
+        <div class="eyebrow">YOUR ZYVIDRA ACCOUNT</div>
+        <h2>Welcome back.</h2>
+        <p>Sign in or create an account to manage your requests.</p>
+      </div>
+
+      <label for="authName">Full name <span class="optional-label">for new accounts</span></label>
+      <input type="text" id="authName" autocomplete="name" placeholder="Enter your full name">
+
+      <label for="authEmail">Email address</label>
+      <input type="email" id="authEmail" autocomplete="email" placeholder="you@example.com" required>
+
+      <label for="authPassword">Password</label>
+      <input type="password" id="authPassword" autocomplete="current-password" placeholder="Enter your password" required>
+
+      <div class="auth-buttons">
+        <button type="button" id="loginButton" class="button primary">Sign In</button>
+        <button type="button" id="signupButton" class="button secondary">Create Account</button>
+      </div>
+
+      <button type="button" id="logoutButton" class="button secondary" hidden>Sign Out</button>
+      <p id="authMessage" role="status" aria-live="polite"></p>
+    </div>
+
+    <!-- VIDEO REQUEST FORM — KEEP EXISTING IDS FOR script.js -->
+    <form class="request-form" id="requestForm" hidden>
+      <div class="form-title">
+        <div>
+          <h3>Video Request Studio</h3>
+          <p>Tell us how your video should look.</p>
+        </div>
+        <span class="form-step">NEW REQUEST</span>
+      </div>
+
+      <label for="creationMode">Video creation mode *</label>
+      <select id="creationMode" name="creationMode" required>
+        <option value="text_to_video">Text to Video — prompt only</option>
+        <option value="first_frame">First Frame to Video</option>
+        <option value="first_last_frame">First Frame + Last Frame</option>
+        <option value="reference_media">Reference Image or Video</option>
+      </select>
+
+      <label>AI model *</label>
+      <div class="model-select">
+        <label class="radio-card">
+          <input type="radio" name="model" value="Veo 3" checked>
+          <span class="radio-dot"></span>
+          <span><strong>Veo 3</strong><small>Cinematic generation</small></span>
+        </label>
+
+        <label class="radio-card">
+          <input type="radio" name="model" value="Omni Flash">
+          <span class="radio-dot"></span>
+          <span><strong>Omni Flash</strong><small>Creative workflow</small></span>
+        </label>
+      </div>
+
+      <label for="prompt">Describe your video *</label>
+      <textarea id="prompt" name="prompt" rows="5" minlength="10" maxlength="2000" placeholder="Describe the scene, subject, movement, camera, lighting and mood..." required></textarea>
+      <div class="field-hint">
+        <span>More detail helps communicate your vision.</span>
+        <span id="charCount">0 / 2000</span>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label for="ratio">Aspect ratio</label>
+          <select id="ratio" name="ratio">
+            <option value="9:16 — Portrait">9:16 — Portrait</option>
+            <option value="16:9 — Landscape">16:9 — Landscape</option>
+            <option value="1:1 — Square">1:1 — Square</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="duration">Preferred duration</label>
+          <select id="duration" name="duration">
+            <option value="8 seconds" selected>8 seconds</option>
+            <option value="10 seconds">10 seconds</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label for="style">Visual style</label>
+          <select id="style" name="style">
+            <option value="Cinematic / film look">Cinematic / film look</option>
+            <option value="Photorealistic">Photorealistic</option>
+            <option value="Animation / fantasy">Animation / fantasy</option>
+            <option value="Product advertisement">Product advertisement</option>
+            <option value="Social media / UGC style">Social media / UGC style</option>
+            <option value="Other / describe in prompt">Other / describe in prompt</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="audio">Audio preference</label>
+          <select id="audio" name="audio">
+            <option value="Audio if supported">Audio if supported</option>
+            <option value="No audio / silent video">No audio / silent video</option>
+            <option value="Music or sound effects if supported">Music / sound effects if supported</option>
+          </select>
+        </div>
+      </div>
+
+      <label for="useCase">Where will you use this video?</label>
+      <select id="useCase" name="useCase">
+        <option value="TikTok / Reels / Shorts">TikTok / Reels / Shorts</option>
+        <option value="YouTube video">YouTube video</option>
+        <option value="Product or brand promotion">Product or brand promotion</option>
+        <option value="Personal creative project">Personal creative project</option>
+        <option value="Other">Other</option>
+      </select>
+
+      <label for="reference">Reference image (optional)</label>
+      <label class="upload-zone" for="reference">
+        <span class="upload-icon">↑</span>
+        <strong id="uploadTitle">Choose an image or drop it here</strong>
+        <small id="uploadHint">PNG, JPG or WEBP · maximum 50 MB</small>
+        <input id="reference" name="reference" type="file" accept="image/png,image/jpeg,image/webp">
+      </label>
+
+      <div id="imagePreview" class="image-preview" hidden>
+        <img id="previewImg" alt="Selected reference preview">
+        <div>
+          <strong id="fileName"></strong>
+          <small id="fileSize"></small>
+        </div>
+        <button type="button" id="removeImage" class="remove-btn">Remove</button>
+      </div>
+
+      <div class="extra-upload-fields">
+        <label for="firstFrame">First frame image (optional)</label>
+        <input id="firstFrame" name="firstFrame" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+
+        <label for="lastFrame">Last frame image (optional)</label>
+        <input id="lastFrame" name="lastFrame" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+
+        <label for="referenceVideo">Reference video (optional)</label>
+        <input id="referenceVideo" name="referenceVideo" type="file" accept="video/mp4,video/webm" hidden>
+
+        <p class="field-hint">Images: JPG, PNG or WEBP. Videos: MP4 or WEBM. Maximum file size: 50 MB.</p>
+      </div>
+
+      <button class="button primary submit-button" type="submit">Submit Video Request <span>↗</span></button>
+      <p class="form-disclaimer">Your request will be reviewed by the studio. Submitting does not automatically start video generation.</p>
+      <div id="formMessage" class="form-message" role="status" aria-live="polite" hidden></div>
+    </form>
+
+    <!-- CUSTOMER DASHBOARD -->
+    <section id="dashboardPanel" class="dashboard-panel" hidden>
+      <div class="section-heading">
+        <div>
+          <div class="eyebrow">YOUR STUDIO</div>
+          <h2>My Videos &amp; Requests</h2>
+        </div>
+        <button type="button" id="refreshRequests" class="button secondary">Refresh</button>
+      </div>
+      <p id="dashboardMessage" role="status" aria-live="polite">Your requests will appear here.</p>
+      <div id="requestList" class="request-list"></div>
+    </section>
+
+    <!-- ADMIN DASHBOARD -->
+    <section id="adminPanel" class="dashboard-panel" hidden>
+      <div class="section-heading">
+        <div>
+          <div class="eyebrow">ZYVIDRA MANAGEMENT</div>
+          <h2>Admin Dashboard</h2>
+          <p>Review requests and update delivery status.</p>
+        </div>
+        <button type="button" id="refreshAdminRequests" class="button secondary">Refresh Requests</button>
+      </div>
+      <p id="adminMessage" role="status" aria-live="polite">Checking administrator access...</p>
+      <div id="adminRequestList" class="request-list"></div>
+    </section>
+  </section>
+
+  <!-- FEATURES — NOW BELOW THE STUDIO -->
   <section class="capabilities section" id="features">
     <div class="section-heading">
-      <div><div class="eyebrow">MADE FOR YOUR IMAGINATION</div><h2>Everything starts with an idea.</h2></div>
+      <div>
+        <div class="eyebrow">MADE FOR YOUR IMAGINATION</div>
+        <h2>Everything starts with an idea.</h2>
+      </div>
       <p>Shape your video with creative direction that fits your project.</p>
     </div>
+
     <div class="capability-grid">
-      <article class="capability-card"><span class="capability-symbol">▣</span><h3>Flexible formats</h3><p>Create briefs for portrait, landscape, and square video formats.</p></article>
-      <article class="capability-card"><span class="capability-symbol">✧</span><h3>Your visual style</h3><p>Describe cinematic realism, animation, product visuals, lighting, and mood.</p></article>
-      <article class="capability-card"><span class="capability-symbol">◷</span><h3>Reference media</h3><p>Provide optional images or supported reference files to explain your vision.</p></article>
+      <article class="capability-card">
+        <span class="capability-symbol">▣</span>
+        <h3>Flexible formats</h3>
+        <p>Create briefs for portrait, landscape, and square video formats.</p>
+      </article>
+      <article class="capability-card">
+        <span class="capability-symbol">✧</span>
+        <h3>Your visual style</h3>
+        <p>Describe cinematic realism, animation, product visuals, lighting, and mood.</p>
+      </article>
+      <article class="capability-card">
+        <span class="capability-symbol">◷</span>
+        <h3>Reference media</h3>
+        <p>Provide optional images or supported reference files to explain your vision.</p>
+      </article>
     </div>
   </section>
 
   <!-- HOW IT WORKS -->
   <section class="workflow section" id="how-it-works">
     <div class="section-heading">
-      <div><div class="eyebrow">YOUR CREATIVE JOURNEY</div><h2>How It Works</h2></div>
+      <div>
+        <div class="eyebrow">YOUR CREATIVE JOURNEY</div>
+        <h2>How It Works</h2>
+      </div>
       <p>Four simple steps from your first idea to video delivery.</p>
     </div>
+
     <div class="steps">
-      <article class="step"><span>01</span><div class="step-icon">✎</div><h3>Create Request</h3><p>Describe your video, choose a model, and attach reference media if needed.</p></article>
-      <article class="step"><span>02</span><div class="step-icon">☷</div><h3>We Process</h3><p>Your request is received and reviewed by the studio.</p></article>
-      <article class="step"><span>03</span><div class="step-icon">✦</div><h3>Video Generation</h3><p>The studio works on your request using its available AI tools.</p></article>
-      <article class="step"><span>04</span><div class="step-icon">↓</div><h3>Download</h3><p>When your video is ready, access its delivery link through your requests.</p></article>
+      <article class="step">
+        <span>01</span><div class="step-icon">✎</div>
+        <h3>Create Request</h3>
+        <p>Describe your video, choose a model, and attach reference media if needed.</p>
+      </article>
+      <article class="step">
+        <span>02</span><div class="step-icon">☷</div>
+        <h3>We Process</h3>
+        <p>Your request is received and reviewed by the studio.</p>
+      </article>
+      <article class="step">
+        <span>03</span><div class="step-icon">✦</div>
+        <h3>Video Generation</h3>
+        <p>The studio works on your request using its available AI tools.</p>
+      </article>
+      <article class="step">
+        <span>04</span><div class="step-icon">↓</div>
+        <h3>Download</h3>
+        <p>When your video is ready, access its delivery link through your requests.</p>
+      </article>
     </div>
   </section>
 
@@ -186,113 +445,11 @@
       <small>Pricing and production details can be confirmed with the studio before work begins.</small>
     </div>
     <div class="vision-art" aria-hidden="true">
-      <div class="vision-sun"></div><div class="vision-mountain vm1"></div><div class="vision-mountain vm2"></div><div class="vision-mountain vm3"></div>
+      <div class="vision-sun"></div>
+      <div class="vision-mountain vm1"></div>
+      <div class="vision-mountain vm2"></div>
+      <div class="vision-mountain vm3"></div>
     </div>
-  </section>
-
-  <!-- CREATE VIDEOS / AUTH / CUSTOMER DASHBOARD -->
-  <section class="request-section section" id="request">
-    <div class="request-intro" id="contact">
-      <div class="eyebrow">LET'S CREATE SOMETHING</div>
-      <h2>Your next video<br>starts here.</h2>
-      <p>Sign in, tell us what you want to create, and submit your video brief. You can follow your requests from your dashboard.</p>
-      <div class="mini-note"><span>🔒</span><div><strong>Your files matter</strong><p>Reference uploads are stored in private storage. Avoid uploading sensitive or confidential material.</p></div></div>
-      <div class="contact-card"><span>✦</span><div><strong>Made for creators</strong><p>Social videos, brand concepts, product visuals, and personal creative projects.</p></div></div>
-    </div>
-
-    <div id="authPanel" class="auth-panel">
-      <div class="auth-heading"><div class="eyebrow">YOUR ZYVIDRA ACCOUNT</div><h2>Welcome back.</h2><p>Sign in or create an account to manage your requests.</p></div>
-      <label for="authName">Full name <span class="optional-label">for new accounts</span></label>
-      <input type="text" id="authName" autocomplete="name" placeholder="Enter your full name">
-      <label for="authEmail">Email address</label>
-      <input type="email" id="authEmail" autocomplete="email" placeholder="you@example.com" required>
-      <label for="authPassword">Password</label>
-      <input type="password" id="authPassword" autocomplete="current-password" placeholder="Enter your password" required>
-      <div class="auth-buttons">
-        <button type="button" id="loginButton" class="button primary">Sign In</button>
-        <button type="button" id="signupButton" class="button secondary">Create Account</button>
-      </div>
-      <button type="button" id="logoutButton" class="button secondary" hidden>Sign Out</button>
-      <p id="authMessage" role="status" aria-live="polite"></p>
-    </div>
-
-    <form class="request-form" id="requestForm" hidden>
-      <div class="form-title"><div><h3>Video Request Studio</h3><p>Tell us how your video should look.</p></div><span class="form-step">NEW REQUEST</span></div>
-
-      <label for="creationMode">Video creation mode *</label>
-      <select id="creationMode" name="creationMode" required>
-        <option value="text_to_video">Text to Video — prompt only</option>
-        <option value="first_frame">First Frame to Video</option>
-        <option value="first_last_frame">First Frame + Last Frame</option>
-        <option value="reference_media">Reference Image or Video</option>
-      </select>
-
-      <label>AI model *</label>
-      <div class="model-select">
-        <label class="radio-card"><input type="radio" name="model" value="Veo 3" checked><span class="radio-dot"></span><span><strong>Veo 3</strong><small>Cinematic generation</small></span></label>
-        <label class="radio-card"><input type="radio" name="model" value="Omni Flash"><span class="radio-dot"></span><span><strong>Omni Flash</strong><small>Creative workflow</small></span></label>
-      </div>
-
-      <label for="prompt">Describe your video *</label>
-      <textarea id="prompt" name="prompt" rows="5" minlength="10" maxlength="2000" placeholder="Describe the scene, subject, movement, camera, lighting and mood..." required></textarea>
-      <div class="field-hint"><span>More detail helps communicate your vision.</span><span id="charCount">0 / 2000</span></div>
-
-      <div class="form-row">
-        <div><label for="ratio">Aspect ratio</label><select id="ratio" name="ratio"><option value="9:16 — Portrait">9:16 — Portrait</option><option value="16:9 — Landscape">16:9 — Landscape</option><option value="1:1 — Square">1:1 — Square</option></select></div>
-        <div><label for="duration">Preferred duration</label><select id="duration" name="duration"><option value="8 seconds" selected>8 seconds</option><option value="10 seconds">10 seconds</option></select></div>
-      </div>
-
-      <div class="form-row">
-        <div><label for="style">Visual style</label><select id="style" name="style"><option value="Cinematic / film look">Cinematic / film look</option><option value="Photorealistic">Photorealistic</option><option value="Animation / fantasy">Animation / fantasy</option><option value="Product advertisement">Product advertisement</option><option value="Social media / UGC style">Social media / UGC style</option><option value="Other / describe in prompt">Other / describe in prompt</option></select></div>
-        <div><label for="audio">Audio preference</label><select id="audio" name="audio"><option value="Audio if supported">Audio if supported</option><option value="No audio / silent video">No audio / silent video</option><option value="Music or sound effects if supported">Music / sound effects if supported</option></select></div>
-      </div>
-
-      <label for="useCase">Where will you use this video?</label>
-      <select id="useCase" name="useCase"><option value="TikTok / Reels / Shorts">TikTok / Reels / Shorts</option><option value="YouTube video">YouTube video</option><option value="Product or brand promotion">Product or brand promotion</option><option value="Personal creative project">Personal creative project</option><option value="Other">Other</option></select>
-
-      <label for="reference">Reference image (optional)</label>
-      <label class="upload-zone" for="reference">
-        <span class="upload-icon">↑</span>
-        <strong id="uploadTitle">Choose an image or drop it here</strong>
-        <small id="uploadHint">PNG, JPG or WEBP · maximum 50 MB</small>
-        <input id="reference" name="reference" type="file" accept="image/png,image/jpeg,image/webp">
-      </label>
-
-      <div id="imagePreview" class="image-preview" hidden>
-        <img id="previewImg" alt="Selected reference preview">
-        <div><strong id="fileName"></strong><small id="fileSize"></small></div>
-        <button type="button" id="removeImage" class="remove-btn">Remove</button>
-      </div>
-
-      <div class="extra-upload-fields">
-        <label for="firstFrame">First frame image (optional)</label><input id="firstFrame" name="firstFrame" type="file" accept="image/jpeg,image/png,image/webp" hidden>
-        <label for="lastFrame">Last frame image (optional)</label><input id="lastFrame" name="lastFrame" type="file" accept="image/jpeg,image/png,image/webp" hidden>
-        <label for="referenceVideo">Reference video (optional)</label><input id="referenceVideo" name="referenceVideo" type="file" accept="video/mp4,video/webm" hidden>
-        <p class="field-hint">Images: JPG, PNG or WEBP. Videos: MP4 or WEBM. Maximum file size: 50 MB.</p>
-      </div>
-
-      <button class="button primary submit-button" type="submit">Submit Video Request <span>↗</span></button>
-      <p class="form-disclaimer">Your request will be reviewed by the studio. Submitting does not automatically start video generation.</p>
-      <div id="formMessage" class="form-message" role="status" aria-live="polite" hidden></div>
-    </form>
-
-    <section id="dashboardPanel" class="dashboard-panel" hidden>
-      <div class="section-heading">
-        <div><div class="eyebrow">YOUR STUDIO</div><h2>My Videos &amp; Requests</h2></div>
-        <button type="button" id="refreshRequests" class="button secondary">Refresh</button>
-      </div>
-      <p id="dashboardMessage" role="status" aria-live="polite">Your requests will appear here.</p>
-      <div id="requestList" class="request-list"></div>
-    </section>
-
-    <section id="adminPanel" class="dashboard-panel" hidden>
-      <div class="section-heading">
-        <div><div class="eyebrow">ZYVIDRA MANAGEMENT</div><h2>Admin Dashboard</h2><p>Review requests and update delivery status.</p></div>
-        <button type="button" id="refreshAdminRequests" class="button secondary">Refresh Requests</button>
-      </div>
-      <p id="adminMessage" role="status" aria-live="polite">Checking administrator access...</p>
-      <div id="adminRequestList" class="request-list"></div>
-    </section>
   </section>
 
   <!-- PROFILE -->
@@ -340,24 +497,36 @@
       <a href="#request" class="settings-action">Review request form ↗</a>
     </div>
   </section>
+
 </main>
 
 <footer>
-  <a class="brand footer-brand" href="#home"><span class="brand-mark">Z</span><span><strong>Zyvidra</strong><small>AI VIDEO STUDIO</small></span></a>
+  <a class="brand footer-brand" href="#home">
+    <span class="brand-mark">Z</span>
+    <span><strong>Zyvidra</strong><small>AI VIDEO STUDIO</small></span>
+  </a>
   <p>Turn your ideas into stunning videos.</p>
-  <div class="footer-links"><a href="#home">Home</a><a href="#features">Features</a><a href="#request">Contact</a></div>
+  <div class="footer-links">
+    <a href="#home">Home</a>
+    <a href="#features">Features</a>
+    <a href="#request">Contact</a>
+  </div>
   <span>© <span id="year"></span> Zyvidra</span>
 </footer>
 
+<!-- SUCCESS DIALOG -->
 <dialog id="successDialog" class="success-dialog">
   <div class="success-mark">✓</div>
   <div class="eyebrow">REQUEST RECEIVED</div>
   <h2>Your request has been submitted.</h2>
   <p id="successText">Your request has been submitted and is pending review.</p>
   <div class="dialog-warning">Submission does not automatically start video generation.</div>
-  <div class="dialog-actions"><button class="button primary" id="closeDialog" type="button">Got it</button></div>
+  <div class="dialog-actions">
+    <button class="button primary" id="closeDialog" type="button">Got it</button>
+  </div>
 </dialog>
 
+<!-- MOBILE SIDEBAR -->
 <script>
 (() => {
   const sidebar = document.getElementById("appSidebar");

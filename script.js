@@ -1,4 +1,3 @@
-
 const SUPABASE_URL = "https://laixvuhoyozespdsypke.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   "sb_publishable_UwBjXqHLTs1Oy3wkFz3NlQ_JwRC4heT";
@@ -36,13 +35,11 @@ const formMessage = document.getElementById("formMessage");
 const zone = document.querySelector(".upload-zone");
 const creationModeSelect = document.getElementById("creationMode");
 const extraUploadFields = document.querySelector(".extra-upload-fields");
-const extraUploadHint =
-  extraUploadFields?.querySelector(".field-hint");
+const extraUploadHint = extraUploadFields?.querySelector(".field-hint");
 
 const customerEmailInput = document.getElementById("email");
 
-document.getElementById("year").textContent =
-  new Date().getFullYear();
+document.getElementById("year").textContent = new Date().getFullYear();
 
 if (!window.supabase?.createClient) {
   authMessage.textContent =
@@ -72,8 +69,7 @@ function clearImage() {
   fileName.textContent = "";
   fileSize.textContent = "";
   uploadTitle.textContent = "Choose an image or drop it here";
-  uploadHint.textContent =
-    "PNG, JPG or WEBP · maximum 50 MB";
+  uploadHint.textContent = "PNG, JPG or WEBP · maximum 50 MB";
 }
 
 function updateAccountUI(session) {
@@ -88,11 +84,6 @@ function updateAccountUI(session) {
 
   if (signedIn) {
     const user = session.user;
-    const name = user.user_metadata?.full_name || "";
-
-    
-}
-    }
 
     if (customerEmailInput) {
       customerEmailInput.value = user.email || "";
@@ -101,8 +92,9 @@ function updateAccountUI(session) {
 
     showAuthMessage("You are signed in.");
   } else {
-  
-    if (customerEmailInput) customerEmailInput.value = "";
+    if (customerEmailInput) {
+      customerEmailInput.value = "";
+    }
   }
 
   updateUploadFields();
@@ -131,11 +123,10 @@ loginButton.addEventListener("click", async () => {
   loginButton.textContent = "Signing in...";
 
   try {
-    const { error } =
-      await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
+    const { error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
 
     if (error) throw error;
 
@@ -210,6 +201,7 @@ logoutButton.addEventListener("click", async () => {
 
   try {
     const { error } = await supabaseClient.auth.signOut();
+
     if (error) throw error;
 
     showAuthMessage("You have signed out.");
@@ -248,8 +240,7 @@ referenceInput.addEventListener("change", () => {
 
   previewImg.src = URL.createObjectURL(file);
   fileName.textContent = file.name;
-  fileSize.textContent =
-    `${(file.size / 1024 / 1024).toFixed(2)} MB`;
+  fileSize.textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
   imagePreview.hidden = false;
   uploadTitle.textContent = "Reference image selected";
   uploadHint.textContent = "Remove the image or choose another one";
@@ -317,9 +308,7 @@ async function uploadFile(file, userId, requestId, fieldName, token) {
   if (!response.ok) {
     const details = await response.text();
     console.error("Storage upload error:", response.status, details);
-    throw new Error(
-      `Could not upload ${file.name} (${response.status}).`
-    );
+    throw new Error(`Could not upload ${file.name} (${response.status}).`);
   }
 
   return path;
@@ -375,7 +364,10 @@ function updateUploadFields() {
   if (!showReference) {
     if (referenceInput) referenceInput.value = "";
     clearImage();
-    if (referenceVideoInput) referenceVideoInput.value = "";
+
+    if (referenceVideoInput) {
+      referenceVideoInput.value = "";
+    }
   }
 
   if (!showFirst && firstFrameInput) firstFrameInput.value = "";
@@ -430,7 +422,9 @@ form.addEventListener("submit", async (event) => {
     const user = session.user;
     const data = new FormData(form);
     const prompt = promptInput.value.trim();
-    const creationMode = String(data.get("creationMode") || "text_to_video");
+    const creationMode = String(
+      data.get("creationMode") || "text_to_video"
+    );
     const durationValue = String(data.get("duration") || "");
     const durationMatch = durationValue.match(/\d+/);
     const duration = durationMatch ? Number(durationMatch[0]) : NaN;
@@ -471,11 +465,18 @@ form.addEventListener("submit", async (event) => {
       throw new Error("Please select a first-frame image.");
     }
 
-    if (creationMode === "first_last_frame" && (!firstFrame || !lastFrame)) {
+    if (
+      creationMode === "first_last_frame" &&
+      (!firstFrame || !lastFrame)
+    ) {
       throw new Error("Please select both frame images.");
     }
 
-    if (creationMode === "reference_media" && !referenceImage && !referenceVideo) {
+    if (
+      creationMode === "reference_media" &&
+      !referenceImage &&
+      !referenceVideo
+    ) {
       throw new Error("Please select a reference image or video.");
     }
 
@@ -483,8 +484,6 @@ form.addEventListener("submit", async (event) => {
     validateFile(firstFrame, "image");
     validateFile(lastFrame, "image");
     validateFile(referenceVideo, "video");
-
-    
 
     submitButton.disabled = true;
     submitButton.textContent = "Uploading and submitting...";
@@ -559,7 +558,6 @@ form.addEventListener("submit", async (event) => {
     charCount.textContent = "0 / 2000";
     updateUploadFields();
     dialog.showModal();
-
   } catch (error) {
     showError(error.message || "Something went wrong. Please try again.");
   } finally {
@@ -579,5 +577,7 @@ updateUploadFields();
 
 getCurrentSession().catch((error) => {
   console.error("Session initialization failed:", error);
-  showAuthMessage("Unable to check your sign-in. Refresh the page and try again.");
+  showAuthMessage(
+    "Unable to check your sign-in. Refresh the page and try again."
+  );
 });

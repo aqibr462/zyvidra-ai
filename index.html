@@ -487,14 +487,33 @@
 
   <dialog id="successDialog" class="success-dialog">
     <div class="success-mark">✓</div>
-    <div class="eyebrow">REQUEST RECEIVED</div>
-    <h2>Your request has been submitted.</h2>
-    <p id="successText">
-      Your request has been submitted and is pending review.
+
+    <div class="eyebrow">REQUEST CONFIRMED</div>
+
+    <h2>Your request has been received successfully.</h2>
+
+    <p>
+      Your creative brief has been submitted successfully and is now awaiting production.
     </p>
+
     <div class="dialog-warning">
-      Submission does not automatically start video generation.
+      <strong>Your video is in the queue!</strong>
+
+      <p><strong>Status: In Queue</strong></p>
+
+      <p>
+        Your request will be processed in order. You can check its progress
+        from your dashboard.
+      </p>
+
+      <p>
+        Generation begins when production is started by the Zyvidra team.
+      </p>
     </div>
+
+    <!-- Kept for compatibility with the current script.js -->
+    <p id="successText" hidden></p>
+
     <div class="dialog-actions">
       <button class="button primary" id="closeDialog" type="button">
         Got it

@@ -1,7 +1,8 @@
+
 /* =========================================================
    ZYVIDRA — COMPLETE WEBSITE SCRIPT
-   Customer authentication, video requests, uploads,
-   customer dashboard, and administrator dashboard.
+   Authentication, video requests, uploads, customer dashboard,
+   and administrator dashboard.
    ========================================================= */
 
 "use strict";
@@ -16,6 +17,12 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const SITE_URL = "https://aqibr462.github.io/zyvidra-ai/";
 
 /* ===================== SUPABASE CLIENT ===================== */
+
+if (!window.supabase?.createClient) {
+  throw new Error(
+    "Supabase library failed to load. Check your internet connection and script tags."
+  );
+}
 
 const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
@@ -105,7 +112,6 @@ function formatDate(value) {
   if (!value) return "Date unavailable";
 
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) return "Date unavailable";
 
   return date.toLocaleString();
@@ -134,16 +140,14 @@ function getStatusLabel(status, hasVideo = false) {
   switch (status) {
     case "pending":
       return "In Queue";
-
     case "in_progress":
       return "Generating Video";
-
     case "completed":
-      return hasVideo ? "Ready to Download" : "Completed — Awaiting Delivery Link";
-
+      return hasVideo
+        ? "Ready to Download"
+        : "Completed — Awaiting Delivery Link";
     case "rejected":
       return "Not Approved";
-
     default:
       return status || "Pending";
   }
@@ -193,6 +197,14 @@ function makeSafeFileName(name) {
   return cleaned || "upload";
 }
 
+function getSelectedModel() {
+  return document.querySelector('input[name="model"]:checked')?.value || "Veo 3";
+}
+
+function getCreationMode() {
+  return creationMode?.value || "text_to_video";
+}
+
 /* ===================== AUTHENTICATION UI ===================== */
 
 function updateAccountUI(session) {
@@ -209,14 +221,20 @@ function updateAccountUI(session) {
   if (dashboardPanel) dashboardPanel.hidden = !signedIn;
 
   if (signedIn) {
-    setMessage(authMessage, `Signed in as ${currentSession.user.email || "customer"}.`);
+    setMessage(
+      authMessage,
+      `Signed in as ${currentSession.user.email || "customer"}.`
+    );
   } else {
     isAdmin = false;
 
     if (adminPanel) adminPanel.hidden = true;
     if (adminRequestList) adminRequestList.replaceChildren();
 
-    setMessage(authMessage, "Sign in or create an account to submit video requests.");
+    setMessage(
+      authMessage,
+      "Sign in or create an account to submit video requests."
+    );
   }
 
   updateUploadFields();
@@ -233,11 +251,15 @@ async function signUp() {
   }
 
   if (password.length < 6) {
-    setMessage(authMessage, "Your password must contain at least 6 characters.", true);
+    setMessage(
+      authMessage,
+      "Your password must contain at least 6 characters.",
+      true
+    );
     return;
   }
 
-  signupButton && (signupButton.disabled = true);
+  if (signupButton) signupButton.disabled = true;
   setMessage(authMessage, "Creating your account...");
 
   try {
@@ -245,9 +267,7 @@ async function signUp() {
       email,
       password,
       options: {
-        data: {
-          full_name: name
-        },
+        data: { full_name: name },
         emailRedirectTo: SITE_URL
       }
     });
@@ -261,11 +281,15 @@ async function signUp() {
     } else {
       setMessage(
         authMessage,
-        "Account created. Sign in with your email and password."
+        "Account created. Check your email if confirmation is required, then sign in."
       );
     }
   } catch (error) {
-    setMessage(authMessage, error.message || "Could not create your account.", true);
+    setMessage(
+      authMessage,
+      error.message || "Could not create your account.",
+      true
+    );
   } finally {
     if (signupButton) signupButton.disabled = false;
   }
@@ -307,7 +331,6 @@ async function signOut() {
 
   try {
     const { error } = await supabaseClient.auth.signOut();
-
     if (error) throw error;
 
     currentSession = null;
@@ -334,39 +357,80 @@ logoutButton?.addEventListener("click", signOut);
 authPassword?.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     event.preventDefault();
-
-    if (currentSession?.user) return;
-
     signIn();
   }
 });
 
-/* ===================== UPLOAD FIELD VISIBILITY ===================== */
+/* ===================== UPLOAD MODE SWITCHING ===================== */
+
+function setInputVisibility(input, visible) {
+  if (!input) return;
+
+  input.hidden = !visible;
+  input.disabled = !visible;
+  input.required = visible;
+}
 
 function updateUploadFields() {
-  const mode = creationMode?.value || "text_to_video";
+  const mode = getCreationMode();
 
-  const uploadZones = document.querySelectorAll(".upload-zone");
-  const extraUploadFields = document.querySelectorAll(".extra-upload-fields");
+  const referenceZone = referenceInput?.closest(".upload-zone");
+  const extraFields = document.querySelector(".extra-upload-fields");
 
-  uploadZones.forEach((zone) => {
-    zone.hidden = mode !== "image_to_video";
-  });
+  const firstFrameLabel = document.querySelector('label[for="firstFrame"]');
+  const lastFrameLabel = document.querySelector('label[for="lastFrame"]');
+  const videoLabel = document.querySelector('label[for="referenceVideo"]');
 
-  extraUploadFields.forEach((field) => {
-    field.hidden = mode === "text_to_video";
-  });
+  const showReference = mode === "reference_media";
+  const showFirstFrame =
+    mode === "first_frame" || mode === "first_last_frame";
+  const showLastFrame = mode === "first_last_frame";
+  const showReferenceVideo = mode === "reference_media";
+
+  if (referenceZone) referenceZone.hidden = !showReference;
+
+  if (extraFields) {
+    extraFields.hidden = !(
+      showFirstFrame || showLastFrame || showReferenceVideo
+    );
+  }
+
+  setInputVisibility(firstFrameInput, showFirstFrame);
+  setInputVisibility(lastFrameInput, showLastFrame);
+  setInputVisibility(referenceVideoInput, showReferenceVideo);
+
+  if (firstFrameLabel) firstFrameLabel.hidden = !showFirstFrame;
+  if (lastFrameLabel) lastFrameLabel.hidden = !showLastFrame;
+  if (videoLabel) videoLabel.hidden = !showReferenceVideo;
+
+  if (referenceInput) {
+    referenceInput.disabled = !showReference;
+    referenceInput.required = false;
+  }
 
   if (uploadTitle) {
-    uploadTitle.textContent =
-      mode === "image_to_video"
-        ? "Upload your reference image"
-        : "Upload reference files";
+    uploadTitle.textContent = showReference
+      ? "Choose a reference image"
+      : "Choose an image";
   }
 
   if (uploadHint) {
-    uploadHint.textContent =
-      "Maximum file size: 50 MB per file.";
+    uploadHint.textContent = "PNG, JPG or WEBP · maximum 50 MB";
+  }
+
+  // Clear files that belong to a mode that is no longer selected.
+  if (!showReference && referenceInput) referenceInput.value = "";
+  if (!showFirstFrame && firstFrameInput) firstFrameInput.value = "";
+  if (!showLastFrame && lastFrameInput) lastFrameInput.value = "";
+  if (!showReferenceVideo && referenceVideoInput) {
+    referenceVideoInput.value = "";
+  }
+
+  if (!showReference && imagePreview) {
+    imagePreview.hidden = true;
+    if (previewImg) previewImg.removeAttribute("src");
+    if (fileName) fileName.textContent = "";
+    if (fileSize) fileSize.textContent = "";
   }
 }
 
@@ -377,7 +441,7 @@ creationMode?.addEventListener("change", updateUploadFields);
 function showImagePreview(file) {
   if (!file || !imagePreview || !previewImg) return;
 
-  if (file.type && !file.type.startsWith("image/")) {
+  if (!file.type.startsWith("image/")) {
     setMessage(formMessage, "Please select an image file.", true);
     return;
   }
@@ -418,7 +482,6 @@ removeImageButton?.addEventListener("click", () => {
   if (referenceInput) referenceInput.value = "";
   if (previewImg) previewImg.removeAttribute("src");
   if (imagePreview) imagePreview.hidden = true;
-
   if (fileName) fileName.textContent = "";
   if (fileSize) fileSize.textContent = "";
 });
@@ -428,7 +491,7 @@ removeImageButton?.addEventListener("click", () => {
 function updateCharacterCount() {
   if (!promptInput || !charCount) return;
 
-  charCount.textContent = `${promptInput.value.length} characters`;
+  charCount.textContent = `${promptInput.value.length} / 2000`;
 }
 
 promptInput?.addEventListener("input", updateCharacterCount);
@@ -442,8 +505,12 @@ async function uploadFile(file, userId, label) {
   if (error) throw new Error(error);
 
   const safeName = makeSafeFileName(file.name);
-  const uniqueName = `${Date.now()}_${crypto.randomUUID()}_${safeName}`;
-  const path = `${userId}/${uniqueName}`;
+  const uniqueId =
+    typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+  const path = `${userId}/${Date.now()}_${uniqueId}_${safeName}`;
 
   const { error: uploadError } = await supabaseClient.storage
     .from(STORAGE_BUCKET)
@@ -458,6 +525,46 @@ async function uploadFile(file, userId, label) {
   return path;
 }
 
+/* ===================== REQUEST VALIDATION ===================== */
+
+function validateRequestFiles(mode) {
+  const referenceFile = getFile(referenceInput);
+  const firstFrameFile = getFile(firstFrameInput);
+  const lastFrameFile = getFile(lastFrameInput);
+  const referenceVideoFile = getFile(referenceVideoInput);
+
+  if (mode === "first_frame" && !firstFrameFile) {
+    return "Please upload the first-frame image.";
+  }
+
+  if (mode === "first_last_frame") {
+    if (!firstFrameFile) return "Please upload the first-frame image.";
+    if (!lastFrameFile) return "Please upload the last-frame image.";
+  }
+
+  if (
+    mode === "reference_media" &&
+    !referenceFile &&
+    !referenceVideoFile
+  ) {
+    return "Please upload a reference image or reference video.";
+  }
+
+  const checks = [
+    [referenceFile, ["image/jpeg", "image/png", "image/webp"], "Reference image"],
+    [firstFrameFile, ["image/jpeg", "image/png", "image/webp"], "First frame"],
+    [lastFrameFile, ["image/jpeg", "image/png", "image/webp"], "Last frame"],
+    [referenceVideoFile, ["video/mp4", "video/webm"], "Reference video"]
+  ];
+
+  for (const [file, types, label] of checks) {
+    const error = validateFile(file, types, label);
+    if (error) return error;
+  }
+
+  return null;
+}
+
 /* ===================== REQUEST SUBMISSION ===================== */
 
 async function submitVideoRequest(event) {
@@ -466,45 +573,39 @@ async function submitVideoRequest(event) {
   if (isSubmitting) return;
 
   if (!currentSession?.user) {
-    setMessage(formMessage, "Please sign in before submitting a request.", true);
+    setMessage(
+      formMessage,
+      "Please sign in before submitting a request.",
+      true
+    );
     return;
   }
 
   const user = currentSession.user;
   const prompt = promptInput?.value.trim() || "";
+  const mode = getCreationMode();
 
-  if (!prompt) {
-    setMessage(formMessage, "Please describe the video you want to create.", true);
+  if (prompt.length < 10) {
+    setMessage(
+      formMessage,
+      "Please describe your video in at least 10 characters.",
+      true
+    );
     promptInput?.focus();
     return;
   }
 
-  const mode = creationMode?.value || "text_to_video";
+  const fileError = validateRequestFiles(mode);
+
+  if (fileError) {
+    setMessage(formMessage, fileError, true);
+    return;
+  }
+
   const referenceFile = getFile(referenceInput);
   const firstFrameFile = getFile(firstFrameInput);
   const lastFrameFile = getFile(lastFrameInput);
   const referenceVideoFile = getFile(referenceVideoInput);
-
-  if (mode === "image_to_video" && !referenceFile) {
-    setMessage(formMessage, "Please upload a reference image for this creation mode.", true);
-    return;
-  }
-
-  const filesToCheck = [
-    [referenceFile, "Reference image"],
-    [firstFrameFile, "First frame"],
-    [lastFrameFile, "Last frame"],
-    [referenceVideoFile, "Reference video"]
-  ];
-
-  for (const [file, label] of filesToCheck) {
-    const error = validateFile(file, [], label);
-
-    if (error) {
-      setMessage(formMessage, error, true);
-      return;
-    }
-  }
 
   isSubmitting = true;
 
@@ -518,23 +619,41 @@ async function submitVideoRequest(event) {
   setMessage(formMessage, "Uploading files and submitting your request...");
 
   try {
-    const referencePath = await uploadFile(referenceFile, user.id, "Reference image");
-    const firstFramePath = await uploadFile(firstFrameFile, user.id, "First frame");
-    const lastFramePath = await uploadFile(lastFrameFile, user.id, "Last frame");
+    const referencePath = await uploadFile(
+      referenceFile,
+      user.id,
+      "Reference image"
+    );
+
+    const firstFramePath = await uploadFile(
+      firstFrameFile,
+      user.id,
+      "First frame"
+    );
+
+    const lastFramePath = await uploadFile(
+      lastFrameFile,
+      user.id,
+      "Last frame"
+    );
+
     const referenceVideoPath = await uploadFile(
       referenceVideoFile,
       user.id,
       "Reference video"
     );
 
+    const durationSeconds =
+      parseInt(durationInput?.value || "8", 10) || 8;
+
     const payload = {
       user_id: user.id,
       customer_name: getCustomerName(user),
       email: user.email || null,
-      model: document.getElementById("model")?.value || "Veo",
+      model: getSelectedModel(),
       prompt,
-      duration_seconds: Number(durationInput?.value || 8),
-      aspect_ratio: ratioInput?.value || "16:9",
+      duration_seconds: durationSeconds,
+      aspect_ratio: ratioInput?.value || "9:16 — Portrait",
       visual_style: styleInput?.value || null,
       audio_preference: audioInput?.value || null,
       intended_platform: useCaseInput?.value || null,
@@ -670,8 +789,10 @@ async function loadCustomerRequests() {
 
 function renderCustomerRequest(request) {
   const card = makeElement("article", "request-card");
-  const safeVideoUrl =
-    request.status === "completed" ? safeHttpUrl(request.final_video_url) : null;
+  const videoUrl =
+    request.status === "completed"
+      ? safeHttpUrl(request.final_video_url)
+      : null;
 
   card.append(
     makeElement("h3", "request-model", request.model || "Video request"),
@@ -684,18 +805,16 @@ function renderCustomerRequest(request) {
     makeElement(
       "p",
       "request-status",
-      `Status: ${getStatusLabel(request.status, Boolean(safeVideoUrl))}`
+      `Status: ${getStatusLabel(request.status, Boolean(videoUrl))}`
     ),
     makeElement("p", "request-prompt", request.prompt || "")
   );
 
-  if (safeVideoUrl) {
+  if (videoUrl) {
     const link = makeElement("a", "button primary", "Download / Watch Video");
-    link.href = safeVideoUrl;
+    link.href = videoUrl;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
-    link.setAttribute("aria-label", "Open your completed video");
-
     card.append(link);
   }
 
@@ -735,7 +854,6 @@ async function loadAdminRequests() {
 
     isAdmin = true;
     adminPanel.hidden = false;
-
     setMessage(adminMessage, "Loading all video requests...");
 
     const { data: requests, error } = await supabaseClient
@@ -790,18 +908,10 @@ function renderAdminRequest(request) {
   card.append(
     makeElement("h3", "request-model", request.model || "Video request"),
     makeElement("p", "request-date", `Submitted: ${formatDate(request.created_at)}`),
-    makeElement(
-      "p",
-      "request-details",
-      `Customer: ${request.customer_name || "Customer"}`
-    ),
+    makeElement("p", "request-details", `Customer: ${request.customer_name || "Customer"}`),
     makeElement("p", "request-details", `Email: ${request.email || "Not provided"}`),
     makeElement("p", "request-details", `Request ID: ${request.id}`),
-    makeElement(
-      "p",
-      "request-details",
-      `Creation mode: ${request.creation_mode || "—"}`
-    ),
+    makeElement("p", "request-details", `Creation mode: ${request.creation_mode || "—"}`),
     makeElement(
       "p",
       "request-details",
@@ -825,9 +935,7 @@ function renderAdminRequest(request) {
 
   uploadedFiles.forEach(([label, path]) => {
     if (path) {
-      card.append(
-        makeElement("p", "request-details", `${label}: ${path}`)
-      );
+      card.append(makeElement("p", "request-details", `${label}: ${path}`));
     }
   });
 
@@ -915,7 +1023,6 @@ function renderAdminRequest(request) {
       if (error) throw error;
 
       setMessage(saveMessage, "Changes saved successfully.");
-
       await refreshDashboards();
     } catch (error) {
       console.error("Admin update error:", error);
@@ -955,7 +1062,6 @@ supabaseClient.auth.onAuthStateChange((_event, session) => {
   updateAccountUI(session);
 
   if (session?.user) {
-    // Run after the auth callback finishes to avoid blocking auth events.
     window.setTimeout(() => {
       if (currentSession?.user?.id === session.user.id) {
         refreshDashboards();
@@ -996,6 +1102,7 @@ async function initializeZyvidra() {
   } catch (error) {
     console.error("Zyvidra initialization error:", error);
 
+    updateAccountUI(null);
     setMessage(
       authMessage,
       "Could not initialize your account session. Refresh the page and try again.",

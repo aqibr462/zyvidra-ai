@@ -14,21 +14,73 @@
 </head>
 <body>
 
+<!-- LEFT APP SIDEBAR -->
+<aside class="app-sidebar" id="appSidebar">
+  <a class="sidebar-brand" href="#home" aria-label="Zyvidra home">
+    <span class="brand-mark">Z</span>
+    <span class="sidebar-brand-text">
+      <strong>Zyvidra</strong>
+      <small>AI VIDEO STUDIO</small>
+    </span>
+  </a>
+
+  <div class="sidebar-label">WORKSPACE</div>
+
+  <nav class="sidebar-nav" aria-label="Workspace navigation">
+    <a class="sidebar-link active" href="#home" data-nav="home">
+      <span class="sidebar-icon">⌂</span><span>Home</span>
+    </a>
+    <a class="sidebar-link" href="#request" data-nav="create">
+      <span class="sidebar-icon">✧</span><span>Create Videos</span>
+    </a>
+    <a class="sidebar-link" href="#dashboardPanel" data-nav="videos">
+      <span class="sidebar-icon">▤</span><span>My Videos</span>
+    </a>
+    <a class="sidebar-link" href="#profilePanel" data-nav="profile">
+      <span class="sidebar-icon">♙</span><span>Profile</span>
+    </a>
+    <a class="sidebar-link" href="#settingsPanel" data-nav="settings">
+      <span class="sidebar-icon">⚙</span><span>Settings</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-bottom">
+    <div class="sidebar-promo">
+      <span class="promo-icon">✦</span>
+      <strong>Your next idea starts here.</strong>
+      <p>Turn your imagination into visual stories.</p>
+      <a href="#request" data-nav="create">Start creating <span>↗</span></a>
+    </div>
+    <div class="sidebar-footer">
+      <span class="online-dot"></span>
+      <span>Creative Studio</span>
+      <span class="sidebar-version">v1.0</span>
+    </div>
+  </div>
+</aside>
+
+<button class="sidebar-mobile-toggle" id="sidebarMobileToggle"
+  type="button" aria-label="Open navigation" aria-expanded="false">
+  <span></span><span></span><span></span>
+</button>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+<!-- TOP BAR -->
 <header class="topbar">
   <a class="brand" href="#home">
     <span class="brand-mark">Z</span>
     <span><strong>Zyvidra</strong><small>AI VIDEO STUDIO</small></span>
   </a>
   <nav aria-label="Main navigation">
-    <a href="#home">Home</a>
+    <a href="#models">Models</a>
     <a href="#features">Features</a>
-    <a href="#pricing">Pricing</a>
-    <a href="#contact">Contact</a>
-    <a href="#request" class="nav-cta">Sign In <span>↗</span></a>
+    <a href="#how-it-works">How it works</a>
+    <a href="#request" class="nav-cta">Start a project <span>↗</span></a>
   </nav>
 </header>
 
 <main>
+  <!-- HOME / HERO -->
   <section class="hero" id="home">
     <div class="hero-copy">
       <div class="eyebrow"><span class="live-dot"></span> AI VIDEO CREATION STUDIO</div>
@@ -45,7 +97,7 @@
       </div>
     </div>
 
-    <div class="hero-art">
+    <div class="hero-art" aria-label="Cinematic landscape preview">
       <div class="art-glow"></div>
       <div class="preview-card preview-main">
         <div class="preview-image">
@@ -74,6 +126,7 @@
     </div>
   </section>
 
+  <!-- MODELS -->
   <section class="models section" id="models">
     <div class="section-heading">
       <div><div class="eyebrow">CREATIVE ENGINES</div><h2>Choose your creative engine.</h2></div>
@@ -96,6 +149,7 @@
     <p class="fine-print">Requests are reviewed and produced manually. Model capabilities, duration, audio and availability depend on current studio access. Submitting a request does not automatically start video generation.</p>
   </section>
 
+  <!-- FEATURES -->
   <section class="capabilities section" id="features">
     <div class="section-heading">
       <div><div class="eyebrow">MADE FOR YOUR IMAGINATION</div><h2>Everything starts with an idea.</h2></div>
@@ -108,6 +162,7 @@
     </div>
   </section>
 
+  <!-- HOW IT WORKS -->
   <section class="workflow section" id="how-it-works">
     <div class="section-heading">
       <div><div class="eyebrow">YOUR CREATIVE JOURNEY</div><h2>How It Works</h2></div>
@@ -121,6 +176,7 @@
     </div>
   </section>
 
+  <!-- CALL TO ACTION -->
   <section class="vision-banner section" id="pricing">
     <div class="vision-content">
       <div class="eyebrow">YOUR IDEAS DESERVE TO BE SEEN</div>
@@ -134,6 +190,7 @@
     </div>
   </section>
 
+  <!-- CREATE VIDEOS / AUTH / CUSTOMER DASHBOARD -->
   <section class="request-section section" id="request">
     <div class="request-intro" id="contact">
       <div class="eyebrow">LET'S CREATE SOMETHING</div>
@@ -151,7 +208,10 @@
       <input type="email" id="authEmail" autocomplete="email" placeholder="you@example.com" required>
       <label for="authPassword">Password</label>
       <input type="password" id="authPassword" autocomplete="current-password" placeholder="Enter your password" required>
-      <div class="auth-buttons"><button type="button" id="loginButton" class="button primary">Sign In</button><button type="button" id="signupButton" class="button secondary">Create Account</button></div>
+      <div class="auth-buttons">
+        <button type="button" id="loginButton" class="button primary">Sign In</button>
+        <button type="button" id="signupButton" class="button secondary">Create Account</button>
+      </div>
       <button type="button" id="logoutButton" class="button secondary" hidden>Sign Out</button>
       <p id="authMessage" role="status" aria-live="polite"></p>
     </div>
@@ -191,9 +251,18 @@
       <select id="useCase" name="useCase"><option value="TikTok / Reels / Shorts">TikTok / Reels / Shorts</option><option value="YouTube video">YouTube video</option><option value="Product or brand promotion">Product or brand promotion</option><option value="Personal creative project">Personal creative project</option><option value="Other">Other</option></select>
 
       <label for="reference">Reference image (optional)</label>
-      <label class="upload-zone" for="reference"><span class="upload-icon">↑</span><strong id="uploadTitle">Choose an image or drop it here</strong><small id="uploadHint">PNG, JPG or WEBP · maximum 50 MB</small><input id="reference" name="reference" type="file" accept="image/png,image/jpeg,image/webp"></label>
+      <label class="upload-zone" for="reference">
+        <span class="upload-icon">↑</span>
+        <strong id="uploadTitle">Choose an image or drop it here</strong>
+        <small id="uploadHint">PNG, JPG or WEBP · maximum 50 MB</small>
+        <input id="reference" name="reference" type="file" accept="image/png,image/jpeg,image/webp">
+      </label>
 
-      <div id="imagePreview" class="image-preview" hidden><img id="previewImg" alt="Selected reference preview"><div><strong id="fileName"></strong><small id="fileSize"></small></div><button type="button" id="removeImage" class="remove-btn">Remove</button></div>
+      <div id="imagePreview" class="image-preview" hidden>
+        <img id="previewImg" alt="Selected reference preview">
+        <div><strong id="fileName"></strong><small id="fileSize"></small></div>
+        <button type="button" id="removeImage" class="remove-btn">Remove</button>
+      </div>
 
       <div class="extra-upload-fields">
         <label for="firstFrame">First frame image (optional)</label><input id="firstFrame" name="firstFrame" type="file" accept="image/jpeg,image/png,image/webp" hidden>
@@ -208,16 +277,68 @@
     </form>
 
     <section id="dashboardPanel" class="dashboard-panel" hidden>
-      <div class="section-heading"><div><div class="eyebrow">YOUR STUDIO</div><h2>My Videos &amp; Requests</h2></div><button type="button" id="refreshRequests" class="button secondary">Refresh</button></div>
+      <div class="section-heading">
+        <div><div class="eyebrow">YOUR STUDIO</div><h2>My Videos &amp; Requests</h2></div>
+        <button type="button" id="refreshRequests" class="button secondary">Refresh</button>
+      </div>
       <p id="dashboardMessage" role="status" aria-live="polite">Your requests will appear here.</p>
       <div id="requestList" class="request-list"></div>
     </section>
 
     <section id="adminPanel" class="dashboard-panel" hidden>
-      <div class="section-heading"><div><div class="eyebrow">ZYVIDRA MANAGEMENT</div><h2>Admin Dashboard</h2><p>Review requests and update delivery status.</p></div><button type="button" id="refreshAdminRequests" class="button secondary">Refresh Requests</button></div>
+      <div class="section-heading">
+        <div><div class="eyebrow">ZYVIDRA MANAGEMENT</div><h2>Admin Dashboard</h2><p>Review requests and update delivery status.</p></div>
+        <button type="button" id="refreshAdminRequests" class="button secondary">Refresh Requests</button>
+      </div>
       <p id="adminMessage" role="status" aria-live="polite">Checking administrator access...</p>
       <div id="adminRequestList" class="request-list"></div>
     </section>
+  </section>
+
+  <!-- PROFILE -->
+  <section class="account-page section" id="profilePanel">
+    <div class="eyebrow">YOUR ACCOUNT</div>
+    <h2>Profile</h2>
+    <p class="account-page-intro">Your Zyvidra account details and account access.</p>
+    <div class="account-info-card">
+      <div class="account-avatar">Z</div>
+      <div class="account-info-content">
+        <h3>Your Zyvidra Account</h3>
+        <p>Sign in to manage your account and video requests. Your profile details depend on your current login session.</p>
+        <a href="#request" class="button primary">Go to Account <span>↗</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="account-page section" id="settingsPanel">
+    <div class="eyebrow">PREFERENCES</div>
+    <h2>Settings</h2>
+    <p class="account-page-intro">Quick access to your account and video preferences.</p>
+
+    <div class="settings-card">
+      <div>
+        <strong>Account access</strong>
+        <p>Sign in or create an account to manage your Zyvidra requests.</p>
+      </div>
+      <a href="#request" class="settings-action">Manage account ↗</a>
+    </div>
+
+    <div class="settings-card">
+      <div>
+        <strong>Video preferences</strong>
+        <p>Choose your model, aspect ratio, duration and visual style when creating a request.</p>
+      </div>
+      <a href="#request" class="settings-action">Create a video ↗</a>
+    </div>
+
+    <div class="settings-card">
+      <div>
+        <strong>Privacy and uploads</strong>
+        <p>Only upload media you have permission to use. Avoid sending sensitive information in prompts or reference files.</p>
+      </div>
+      <a href="#request" class="settings-action">Review request form ↗</a>
+    </div>
   </section>
 </main>
 
@@ -229,11 +350,48 @@
 </footer>
 
 <dialog id="successDialog" class="success-dialog">
-  <div class="success-mark">✓</div><div class="eyebrow">REQUEST RECEIVED</div><h2>Your request has been submitted.</h2>
+  <div class="success-mark">✓</div>
+  <div class="eyebrow">REQUEST RECEIVED</div>
+  <h2>Your request has been submitted.</h2>
   <p id="successText">Your request has been submitted and is pending review.</p>
   <div class="dialog-warning">Submission does not automatically start video generation.</div>
   <div class="dialog-actions"><button class="button primary" id="closeDialog" type="button">Got it</button></div>
 </dialog>
+
+<script>
+(() => {
+  const sidebar = document.getElementById("appSidebar");
+  const toggle = document.getElementById("sidebarMobileToggle");
+  const backdrop = document.getElementById("sidebarBackdrop");
+  const links = document.querySelectorAll(".sidebar-link");
+
+  function closeSidebar() {
+    sidebar.classList.remove("sidebar-open");
+    backdrop.classList.remove("backdrop-visible");
+    toggle.setAttribute("aria-expanded", "false");
+  }
+
+  toggle.addEventListener("click", () => {
+    const open = sidebar.classList.toggle("sidebar-open");
+    backdrop.classList.toggle("backdrop-visible", open);
+    toggle.setAttribute("aria-expanded", String(open));
+  });
+
+  backdrop.addEventListener("click", closeSidebar);
+
+  links.forEach(link => {
+    link.addEventListener("click", () => {
+      links.forEach(item => item.classList.remove("active"));
+      link.classList.add("active");
+      closeSidebar();
+    });
+  });
+
+  document.querySelectorAll(".sidebar-promo a").forEach(link => {
+    link.addEventListener("click", closeSidebar);
+  });
+})();
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="script.js"></script>

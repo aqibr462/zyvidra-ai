@@ -10,7 +10,7 @@
 
 const SUPABASE_URL = "https://laixvuhoyozespdsypke.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
-  "sb_publishable_UwXqHLTs1Oy3wkFz3NlQ_JwRC4heT";
+  "sb_publishable_UwBjXqHLTs1Oy3wkFz3NlQ_JwRC4heT";
 const STORAGE_BUCKET = "zyvidra-files";
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const SITE_URL = "https://aqibr462.github.io/zyvidra-ai/";

@@ -90,7 +90,6 @@ let adminLoadId = 0;
 
 /* ===================== GENERAL HELPERS ===================== */
 
-/* FIX: Make messages visible when they contain text. */
 function setMessage(element, message, isError = false) {
   if (!element) return;
 
@@ -420,7 +419,6 @@ function updateUploadFields() {
     uploadHint.textContent = "PNG, JPG or WEBP · maximum 50 MB";
   }
 
-  // Clear files that belong to a mode that is no longer selected.
   if (!showReference && referenceInput) referenceInput.value = "";
   if (!showFirstFrame && firstFrameInput) firstFrameInput.value = "";
   if (!showLastFrame && lastFrameInput) lastFrameInput.value = "";
@@ -668,19 +666,34 @@ async function submitVideoRequest(event) {
       final_video_url: null
     };
 
-    const { data, error } = await supabaseClient
+    /*
+      FIX:
+      Insert without requesting the inserted row back.
+      This avoids requiring SELECT permission for INSERT RETURNING.
+      If insertion fails, display the actual Supabase error.
+    */
+    const { error } = await supabaseClient
       .from("video_requests")
-      .insert(payload)
-      .select("id")
-      .single();
+      .insert(payload);
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase submission error:", {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
+
+      throw new Error(
+        `Submission failed: ${error.message} (Code: ${error.code || "unknown"})`
+      );
+    }
 
     setMessage(formMessage, "Your video request has been submitted.");
 
     if (successText) {
       successText.textContent =
-        `Your request was submitted successfully. Request ID: ${data.id}. ` +
+        "Your request was submitted successfully. " +
         "You can track its progress in your dashboard.";
     }
 

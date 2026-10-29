@@ -1,3 +1,12 @@
+/* =========================================================
+   ZYVIDRA — COMPLETE WEBSITE SCRIPT
+   Customer authentication, video requests, uploads,
+   customer dashboard, and administrator dashboard.
+   ========================================================= */
+
+"use strict";
+
+/* ===================== CONFIGURATION ===================== */
 
 const SUPABASE_URL = "https://laixvuhoyozespdsypke.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
@@ -6,7 +15,15 @@ const STORAGE_BUCKET = "zyvidra-files";
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const SITE_URL = "https://aqibr462.github.io/zyvidra-ai/";
 
-const form = document.getElementById("requestForm");
+/* ===================== SUPABASE CLIENT ===================== */
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
+
+/* ===================== HTML ELEMENTS ===================== */
+
 const authPanel = document.getElementById("authPanel");
 const authName = document.getElementById("authName");
 const authEmail = document.getElementById("authEmail");
@@ -17,7 +34,17 @@ const loginButton = document.getElementById("loginButton");
 const signupButton = document.getElementById("signupButton");
 const logoutButton = document.getElementById("logoutButton");
 
+const requestForm = document.getElementById("requestForm");
+const creationMode = document.getElementById("creationMode");
 const promptInput = document.getElementById("prompt");
+const charCount = document.getElementById("charCount");
+
+const ratioInput = document.getElementById("ratio");
+const durationInput = document.getElementById("duration");
+const styleInput = document.getElementById("style");
+const audioInput = document.getElementById("audio");
+const useCaseInput = document.getElementById("useCase");
+
 const referenceInput = document.getElementById("reference");
 const firstFrameInput = document.getElementById("firstFrame");
 const lastFrameInput = document.getElementById("lastFrame");
@@ -27,179 +54,106 @@ const imagePreview = document.getElementById("imagePreview");
 const previewImg = document.getElementById("previewImg");
 const fileName = document.getElementById("fileName");
 const fileSize = document.getElementById("fileSize");
+const removeImageButton = document.getElementById("removeImage");
 const uploadTitle = document.getElementById("uploadTitle");
 const uploadHint = document.getElementById("uploadHint");
-const charCount = document.getElementById("charCount");
 
-const dialog = document.getElementById("successDialog");
 const formMessage = document.getElementById("formMessage");
-const zone = document.querySelector(".upload-zone");
-const creationModeSelect = document.getElementById("creationMode");
-const extraUploadFields = document.querySelector(".extra-upload-fields");
-const extraUploadHint =
-  extraUploadFields?.querySelector(".field-hint");
+const successDialog = document.getElementById("successDialog");
+const successText = document.getElementById("successText");
+const closeDialog = document.getElementById("closeDialog");
 
 const dashboardPanel = document.getElementById("dashboardPanel");
 const dashboardMessage = document.getElementById("dashboardMessage");
 const requestList = document.getElementById("requestList");
 const refreshRequests = document.getElementById("refreshRequests");
 
-const yearElement = document.getElementById("year");
+const adminPanel = document.getElementById("adminPanel");
+const adminMessage = document.getElementById("adminMessage");
+const adminRequestList = document.getElementById("adminRequestList");
+const refreshAdminRequests = document.getElementById("refreshAdminRequests");
 
-if (yearElement) {
-  yearElement.textContent = new Date().getFullYear();
-}
-
-if (!window.supabase?.createClient) {
-  if (authMessage) {
-    authMessage.textContent =
-      "Unable to load the account system. Refresh the page and try again.";
-  }
-  throw new Error("Supabase library was not loaded.");
-}
-
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
-);
+/* ===================== APPLICATION STATE ===================== */
 
 let currentSession = null;
-let dashboardLoadNumber = 0;
+let isSubmitting = false;
+let isAdmin = false;
+let customerLoadId = 0;
+let adminLoadId = 0;
 
-function showAuthMessage(message) {
-  if (authMessage) authMessage.textContent = message;
+/* ===================== GENERAL HELPERS ===================== */
+
+function setMessage(element, message, isError = false) {
+  if (!element) return;
+
+  element.textContent = message;
+  element.classList.toggle("error", isError);
 }
 
-function showError(message) {
-  if (!formMessage) return;
-  formMessage.textContent = message;
-  formMessage.hidden = false;
-}
-
-function clearImage() {
-  if (imagePreview) imagePreview.hidden = true;
-  if (previewImg) previewImg.removeAttribute("src");
-  if (fileName) fileName.textContent = "";
-  if (fileSize) fileSize.textContent = "";
-
-  if (uploadTitle) {
-    uploadTitle.textContent = "Choose an image or drop it here";
-  }
-
-  if (uploadHint) {
-    uploadHint.textContent =
-      "PNG, JPG or WEBP · maximum 50 MB";
-  }
-}
-
-function getCustomerName(user) {
-  const metadata = user?.user_metadata || {};
-
-  return String(
-    metadata.full_name ||
-    metadata.name ||
-    user?.email?.split("@")[0] ||
-    "Customer"
-  ).trim();
-}
-
-function updateAccountUI(session) {
-  currentSession = session;
-  const signedIn = Boolean(session?.user);
-
-  if (authPanel) authPanel.hidden = signedIn;
-  if (form) form.hidden = !signedIn;
-  if (logoutButton) logoutButton.hidden = !signedIn;
-  if (loginButton) loginButton.hidden = signedIn;
-  if (signupButton) signupButton.hidden = signedIn;
-
-  if (signedIn) {
-    showAuthMessage("You are signed in.");
-  }
-
-  if (!signedIn) {
-    if (dashboardPanel) dashboardPanel.hidden = true;
-    if (requestList) requestList.replaceChildren();
-    if (dashboardMessage) {
-      dashboardMessage.textContent = "Sign in to view your requests.";
-    }
-  } else {
-    // Run after the authentication event callback has finished.
-    window.setTimeout(() => {
-      if (currentSession?.user?.id === session.user.id) {
-        loadCustomerRequests();
-      }
-    }, 0);
-  }
-
-  updateUploadFields();
-}
-
-async function getCurrentSession() {
-  const { data, error } = await supabaseClient.auth.getSession();
-
-  if (error) throw error;
-
-  updateAccountUI(data.session);
-}
-
-/* CUSTOMER DASHBOARD */
-
-function makeDashboardElement(tag, className, text) {
+function makeElement(tag, className = "", text = "") {
   const element = document.createElement(tag);
 
   if (className) element.className = className;
-  if (text !== undefined) element.textContent = text;
+  if (text !== undefined && text !== null) {
+    element.textContent = String(text);
+  }
 
   return element;
 }
 
-function getStatusLabel(request) {
-  switch (request.status) {
+function formatDate(value) {
+  if (!value) return "Date unavailable";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "Date unavailable";
+
+  return date.toLocaleString();
+}
+
+function formatFileSize(bytes) {
+  if (!Number.isFinite(bytes)) return "";
+
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function getCustomerName(user) {
+  return (
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split("@")[0] ||
+    "Customer"
+  );
+}
+
+function getStatusLabel(status, hasVideo = false) {
+  switch (status) {
     case "pending":
-      return {
-        label: "Request Received — In Queue",
-        className: "status-pending"
-      };
+      return "In Queue";
 
     case "in_progress":
-      return {
-        label: "Generating Video",
-        className: "status-progress"
-      };
+      return "Generating Video";
 
     case "completed":
-      if (getSafeVideoUrl(request.final_video_url)) {
-        return {
-          label: "Ready to Download",
-          className: "status-completed"
-        };
-      }
-
-      return {
-        label: "Completed — Awaiting Delivery Link",
-        className: "status-pending"
-      };
+      return hasVideo ? "Ready to Download" : "Completed — Awaiting Delivery Link";
 
     case "rejected":
-      return {
-        label: "Request Not Approved",
-        className: "status-rejected"
-      };
+      return "Not Approved";
 
     default:
-      return {
-        label: "Request Received",
-        className: "status-pending"
-      };
+      return status || "Pending";
   }
 }
 
-function getSafeVideoUrl(value) {
-  if (typeof value !== "string" || !value.trim()) return null;
+function safeHttpUrl(value) {
+  if (!value || typeof value !== "string") return null;
 
   try {
-    const url = new URL(value);
+    const url = new URL(value.trim());
 
     if (url.protocol !== "https:" && url.protocol !== "http:") {
       return null;
@@ -211,747 +165,849 @@ function getSafeVideoUrl(value) {
   }
 }
 
-function formatRequestDate(value) {
-  if (!value) return "Date unavailable";
+function getFile(input) {
+  return input?.files?.[0] || null;
+}
 
-  const date = new Date(value);
+function validateFile(file, allowedTypes, label) {
+  if (!file) return null;
 
-  if (Number.isNaN(date.getTime())) {
-    return "Date unavailable";
+  if (file.size > MAX_FILE_SIZE) {
+    return `${label} must be smaller than 50 MB.`;
   }
 
-  return date.toLocaleString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit"
+  if (allowedTypes.length && !allowedTypes.includes(file.type)) {
+    return `${label} has an unsupported file type.`;
+  }
+
+  return null;
+}
+
+function makeSafeFileName(name) {
+  const cleaned = name
+    .normalize("NFKD")
+    .replace(/[^a-zA-Z0-9._-]/g, "_")
+    .replace(/_+/g, "_")
+    .slice(-120);
+
+  return cleaned || "upload";
+}
+
+/* ===================== AUTHENTICATION UI ===================== */
+
+function updateAccountUI(session) {
+  currentSession = session || null;
+
+  const signedIn = Boolean(currentSession?.user);
+
+  if (authPanel) authPanel.hidden = signedIn;
+  if (requestForm) requestForm.hidden = !signedIn;
+  if (logoutButton) logoutButton.hidden = !signedIn;
+  if (loginButton) loginButton.hidden = signedIn;
+  if (signupButton) signupButton.hidden = signedIn;
+
+  if (dashboardPanel) dashboardPanel.hidden = !signedIn;
+
+  if (signedIn) {
+    setMessage(authMessage, `Signed in as ${currentSession.user.email || "customer"}.`);
+  } else {
+    isAdmin = false;
+
+    if (adminPanel) adminPanel.hidden = true;
+    if (adminRequestList) adminRequestList.replaceChildren();
+
+    setMessage(authMessage, "Sign in or create an account to submit video requests.");
+  }
+
+  updateUploadFields();
+}
+
+async function signUp() {
+  const name = authName?.value.trim() || "";
+  const email = authEmail?.value.trim() || "";
+  const password = authPassword?.value || "";
+
+  if (!email || !password) {
+    setMessage(authMessage, "Enter your email and password.", true);
+    return;
+  }
+
+  if (password.length < 6) {
+    setMessage(authMessage, "Your password must contain at least 6 characters.", true);
+    return;
+  }
+
+  signupButton && (signupButton.disabled = true);
+  setMessage(authMessage, "Creating your account...");
+
+  try {
+    const { data, error } = await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name
+        },
+        emailRedirectTo: SITE_URL
+      }
+    });
+
+    if (error) throw error;
+
+    if (data.session) {
+      updateAccountUI(data.session);
+      setMessage(authMessage, "Account created and signed in successfully.");
+      await refreshDashboards();
+    } else {
+      setMessage(
+        authMessage,
+        "Account created. Sign in with your email and password."
+      );
+    }
+  } catch (error) {
+    setMessage(authMessage, error.message || "Could not create your account.", true);
+  } finally {
+    if (signupButton) signupButton.disabled = false;
+  }
+}
+
+async function signIn() {
+  const email = authEmail?.value.trim() || "";
+  const password = authPassword?.value || "";
+
+  if (!email || !password) {
+    setMessage(authMessage, "Enter your email and password.", true);
+    return;
+  }
+
+  if (loginButton) loginButton.disabled = true;
+  setMessage(authMessage, "Signing in...");
+
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) throw error;
+
+    updateAccountUI(data.session);
+    setMessage(authMessage, "Signed in successfully.");
+
+    await refreshDashboards();
+  } catch (error) {
+    setMessage(authMessage, error.message || "Sign-in failed.", true);
+  } finally {
+    if (loginButton) loginButton.disabled = false;
+  }
+}
+
+async function signOut() {
+  if (logoutButton) logoutButton.disabled = true;
+
+  try {
+    const { error } = await supabaseClient.auth.signOut();
+
+    if (error) throw error;
+
+    currentSession = null;
+    isAdmin = false;
+    updateAccountUI(null);
+
+    if (requestList) requestList.replaceChildren();
+    if (adminRequestList) adminRequestList.replaceChildren();
+
+    setMessage(authMessage, "You have signed out.");
+    setMessage(dashboardMessage, "");
+    setMessage(adminMessage, "");
+  } catch (error) {
+    setMessage(authMessage, error.message || "Could not sign out.", true);
+  } finally {
+    if (logoutButton) logoutButton.disabled = false;
+  }
+}
+
+loginButton?.addEventListener("click", signIn);
+signupButton?.addEventListener("click", signUp);
+logoutButton?.addEventListener("click", signOut);
+
+authPassword?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+
+    if (currentSession?.user) return;
+
+    signIn();
+  }
+});
+
+/* ===================== UPLOAD FIELD VISIBILITY ===================== */
+
+function updateUploadFields() {
+  const mode = creationMode?.value || "text_to_video";
+
+  const uploadZones = document.querySelectorAll(".upload-zone");
+  const extraUploadFields = document.querySelectorAll(".extra-upload-fields");
+
+  uploadZones.forEach((zone) => {
+    zone.hidden = mode !== "image_to_video";
   });
+
+  extraUploadFields.forEach((field) => {
+    field.hidden = mode === "text_to_video";
+  });
+
+  if (uploadTitle) {
+    uploadTitle.textContent =
+      mode === "image_to_video"
+        ? "Upload your reference image"
+        : "Upload reference files";
+  }
+
+  if (uploadHint) {
+    uploadHint.textContent =
+      "Maximum file size: 50 MB per file.";
+  }
+}
+
+creationMode?.addEventListener("change", updateUploadFields);
+
+/* ===================== IMAGE PREVIEW ===================== */
+
+function showImagePreview(file) {
+  if (!file || !imagePreview || !previewImg) return;
+
+  if (file.type && !file.type.startsWith("image/")) {
+    setMessage(formMessage, "Please select an image file.", true);
+    return;
+  }
+
+  if (file.size > MAX_FILE_SIZE) {
+    setMessage(formMessage, "Image must be smaller than 50 MB.", true);
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    previewImg.src = String(reader.result || "");
+    imagePreview.hidden = false;
+
+    if (fileName) fileName.textContent = file.name;
+    if (fileSize) fileSize.textContent = formatFileSize(file.size);
+  };
+
+  reader.onerror = () => {
+    setMessage(formMessage, "Could not preview this image.", true);
+  };
+
+  reader.readAsDataURL(file);
+}
+
+referenceInput?.addEventListener("change", () => {
+  const file = getFile(referenceInput);
+
+  if (file) {
+    showImagePreview(file);
+  } else if (imagePreview) {
+    imagePreview.hidden = true;
+  }
+});
+
+removeImageButton?.addEventListener("click", () => {
+  if (referenceInput) referenceInput.value = "";
+  if (previewImg) previewImg.removeAttribute("src");
+  if (imagePreview) imagePreview.hidden = true;
+
+  if (fileName) fileName.textContent = "";
+  if (fileSize) fileSize.textContent = "";
+});
+
+/* ===================== PROMPT CHARACTER COUNT ===================== */
+
+function updateCharacterCount() {
+  if (!promptInput || !charCount) return;
+
+  charCount.textContent = `${promptInput.value.length} characters`;
+}
+
+promptInput?.addEventListener("input", updateCharacterCount);
+
+/* ===================== FILE UPLOAD ===================== */
+
+async function uploadFile(file, userId, label) {
+  if (!file) return null;
+
+  const error = validateFile(file, [], label);
+  if (error) throw new Error(error);
+
+  const safeName = makeSafeFileName(file.name);
+  const uniqueName = `${Date.now()}_${crypto.randomUUID()}_${safeName}`;
+  const path = `${userId}/${uniqueName}`;
+
+  const { error: uploadError } = await supabaseClient.storage
+    .from(STORAGE_BUCKET)
+    .upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type || "application/octet-stream"
+    });
+
+  if (uploadError) throw uploadError;
+
+  return path;
+}
+
+/* ===================== REQUEST SUBMISSION ===================== */
+
+async function submitVideoRequest(event) {
+  event.preventDefault();
+
+  if (isSubmitting) return;
+
+  if (!currentSession?.user) {
+    setMessage(formMessage, "Please sign in before submitting a request.", true);
+    return;
+  }
+
+  const user = currentSession.user;
+  const prompt = promptInput?.value.trim() || "";
+
+  if (!prompt) {
+    setMessage(formMessage, "Please describe the video you want to create.", true);
+    promptInput?.focus();
+    return;
+  }
+
+  const mode = creationMode?.value || "text_to_video";
+  const referenceFile = getFile(referenceInput);
+  const firstFrameFile = getFile(firstFrameInput);
+  const lastFrameFile = getFile(lastFrameInput);
+  const referenceVideoFile = getFile(referenceVideoInput);
+
+  if (mode === "image_to_video" && !referenceFile) {
+    setMessage(formMessage, "Please upload a reference image for this creation mode.", true);
+    return;
+  }
+
+  const filesToCheck = [
+    [referenceFile, "Reference image"],
+    [firstFrameFile, "First frame"],
+    [lastFrameFile, "Last frame"],
+    [referenceVideoFile, "Reference video"]
+  ];
+
+  for (const [file, label] of filesToCheck) {
+    const error = validateFile(file, [], label);
+
+    if (error) {
+      setMessage(formMessage, error, true);
+      return;
+    }
+  }
+
+  isSubmitting = true;
+
+  const submitButton = requestForm?.querySelector('[type="submit"]');
+
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = "Submitting...";
+  }
+
+  setMessage(formMessage, "Uploading files and submitting your request...");
+
+  try {
+    const referencePath = await uploadFile(referenceFile, user.id, "Reference image");
+    const firstFramePath = await uploadFile(firstFrameFile, user.id, "First frame");
+    const lastFramePath = await uploadFile(lastFrameFile, user.id, "Last frame");
+    const referenceVideoPath = await uploadFile(
+      referenceVideoFile,
+      user.id,
+      "Reference video"
+    );
+
+    const payload = {
+      user_id: user.id,
+      customer_name: getCustomerName(user),
+      email: user.email || null,
+      model: document.getElementById("model")?.value || "Veo",
+      prompt,
+      duration_seconds: Number(durationInput?.value || 8),
+      aspect_ratio: ratioInput?.value || "16:9",
+      visual_style: styleInput?.value || null,
+      audio_preference: audioInput?.value || null,
+      intended_platform: useCaseInput?.value || null,
+      creation_mode: mode,
+      reference_image_path: referencePath,
+      first_frame_path: firstFramePath,
+      last_frame_path: lastFramePath,
+      reference_video_path: referenceVideoPath,
+      status: "pending",
+      final_video_url: null
+    };
+
+    const { data, error } = await supabaseClient
+      .from("video_requests")
+      .insert(payload)
+      .select("id")
+      .single();
+
+    if (error) throw error;
+
+    setMessage(formMessage, "Your video request has been submitted.");
+
+    if (successText) {
+      successText.textContent =
+        `Your request was submitted successfully. Request ID: ${data.id}. ` +
+        "You can track its progress in your dashboard.";
+    }
+
+    if (successDialog?.showModal) {
+      successDialog.showModal();
+    } else if (successDialog) {
+      successDialog.hidden = false;
+    }
+
+    requestForm.reset();
+
+    if (imagePreview) imagePreview.hidden = true;
+    if (previewImg) previewImg.removeAttribute("src");
+    if (fileName) fileName.textContent = "";
+    if (fileSize) fileSize.textContent = "";
+
+    updateCharacterCount();
+    updateUploadFields();
+
+    await refreshDashboards();
+  } catch (error) {
+    console.error("Request submission error:", error);
+
+    setMessage(
+      formMessage,
+      error.message || "Could not submit your request. Please try again.",
+      true
+    );
+  } finally {
+    isSubmitting = false;
+
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = "Submit Video Request";
+    }
+  }
+}
+
+requestForm?.addEventListener("submit", submitVideoRequest);
+
+closeDialog?.addEventListener("click", () => {
+  if (successDialog?.close) {
+    successDialog.close();
+  } else if (successDialog) {
+    successDialog.hidden = true;
+  }
+});
+
+/* ===================== CUSTOMER DASHBOARD ===================== */
+
+async function loadCustomerRequests() {
+  const loadId = ++customerLoadId;
+
+  if (!dashboardPanel || !requestList || !dashboardMessage) return;
+
+  if (!currentSession?.user) {
+    dashboardPanel.hidden = true;
+    requestList.replaceChildren();
+    return;
+  }
+
+  dashboardPanel.hidden = false;
+  setMessage(dashboardMessage, "Loading your requests...");
+  requestList.replaceChildren();
+
+  try {
+    const { data: requests, error } = await supabaseClient
+      .from("video_requests")
+      .select(
+        "id,created_at,model,prompt,duration_seconds,aspect_ratio,status,final_video_url"
+      )
+      .eq("user_id", currentSession.user.id)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    if (loadId !== customerLoadId) return;
+
+    requestList.replaceChildren();
+
+    if (!requests || requests.length === 0) {
+      setMessage(
+        dashboardMessage,
+        "No requests yet. Submit your first video request using the form above."
+      );
+      return;
+    }
+
+    setMessage(
+      dashboardMessage,
+      `You have ${requests.length} video request${requests.length === 1 ? "" : "s"}.`
+    );
+
+    requests.forEach((request) => {
+      requestList.append(renderCustomerRequest(request));
+    });
+  } catch (error) {
+    console.error("Customer dashboard error:", error);
+
+    if (loadId === customerLoadId) {
+      setMessage(
+        dashboardMessage,
+        error.message || "Could not load your requests. Please refresh.",
+        true
+      );
+    }
+  }
 }
 
 function renderCustomerRequest(request) {
-  const card = makeDashboardElement("article", "request-card");
-  const heading = makeDashboardElement(
-    "div",
-    "request-card-heading"
-  );
+  const card = makeElement("article", "request-card");
+  const safeVideoUrl =
+    request.status === "completed" ? safeHttpUrl(request.final_video_url) : null;
 
-  const model = makeDashboardElement(
-    "h3",
-    "request-model",
-    request.model || "Video request"
-  );
-
-  const statusInfo = getStatusLabel(request);
-  const status = makeDashboardElement(
-    "span",
-    `request-status ${statusInfo.className}`,
-    statusInfo.label
-  );
-
-  heading.append(model, status);
-  card.append(heading);
-
-  const date = makeDashboardElement(
-    "p",
-    "request-date",
-    `Submitted: ${formatRequestDate(request.created_at)}`
-  );
-  card.append(date);
-
-  const promptHeading = makeDashboardElement(
-    "h4",
-    "request-detail-heading",
-    "Your prompt"
-  );
-  const prompt = makeDashboardElement(
-    "p",
-    "request-prompt",
-    request.prompt || "No prompt available."
-  );
-
-  card.append(promptHeading, prompt);
-
-  const details = makeDashboardElement("p", "request-details");
-  details.textContent =
-    `${request.duration_seconds ?? "—"} seconds · ` +
-    `${request.aspect_ratio || "—"}`;
-
-  card.append(details);
-
-  const videoUrl = getSafeVideoUrl(request.final_video_url);
-
-  if (request.status === "completed" && videoUrl) {
-    const downloadLink = makeDashboardElement(
-      "a",
-      "button primary",
-      "Download video"
-    );
-
-    downloadLink.href = videoUrl;
-    downloadLink.target = "_blank";
-    downloadLink.rel = "noopener noreferrer";
-    downloadLink.setAttribute("aria-label", "Open your completed video");
-
-    card.append(downloadLink);
-  } else if (
-    request.status === "completed" &&
-    !videoUrl
-  ) {
-    const note = makeDashboardElement(
+  card.append(
+    makeElement("h3", "request-model", request.model || "Video request"),
+    makeElement("p", "request-date", `Submitted: ${formatDate(request.created_at)}`),
+    makeElement(
       "p",
-      "request-note",
-      "Your request is marked completed, but its video link is not available yet."
-    );
+      "request-details",
+      `Duration: ${request.duration_seconds ?? "—"} seconds · Ratio: ${request.aspect_ratio || "—"}`
+    ),
+    makeElement(
+      "p",
+      "request-status",
+      `Status: ${getStatusLabel(request.status, Boolean(safeVideoUrl))}`
+    ),
+    makeElement("p", "request-prompt", request.prompt || "")
+  );
 
-    card.append(note);
+  if (safeVideoUrl) {
+    const link = makeElement("a", "button primary", "Download / Watch Video");
+    link.href = safeVideoUrl;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.setAttribute("aria-label", "Open your completed video");
+
+    card.append(link);
   }
 
   return card;
 }
 
-async function loadCustomerRequests() {
-  const loadNumber = ++dashboardLoadNumber;
+refreshRequests?.addEventListener("click", loadCustomerRequests);
 
-  if (!dashboardPanel || !dashboardMessage || !requestList) {
-    return;
-  }
+/* ===================== ADMIN DASHBOARD ===================== */
 
-  const userId = currentSession?.user?.id;
+async function loadAdminRequests() {
+  const loadId = ++adminLoadId;
 
-  if (!userId) {
-    dashboardPanel.hidden = true;
-    return;
-  }
+  if (!adminPanel || !adminRequestList || !adminMessage) return;
 
-  dashboardPanel.hidden = false;
-  dashboardMessage.textContent = "Loading your requests...";
-  requestList.replaceChildren();
+  adminPanel.hidden = true;
+  isAdmin = false;
+  adminRequestList.replaceChildren();
 
-  if (refreshRequests) refreshRequests.disabled = true;
+  if (!currentSession?.user) return;
+
+  setMessage(adminMessage, "Verifying administrator access...");
+
+  if (refreshAdminRequests) refreshAdminRequests.disabled = true;
 
   try {
-    const { data: sessionData, error: sessionError } =
-      await supabaseClient.auth.getSession();
+    const { data: roleData, error: roleError } =
+      await supabaseClient.rpc("is_zyvidra_admin");
 
-    if (sessionError) throw sessionError;
+    if (roleError) throw roleError;
+    if (loadId !== adminLoadId) return;
 
-    const session = sessionData.session;
-
-    if (!session?.user || session.user.id !== userId) {
+    if (roleData !== true) {
+      setMessage(adminMessage, "This account does not have administrator access.");
       return;
     }
 
-    const { data, error } = await supabaseClient
+    isAdmin = true;
+    adminPanel.hidden = false;
+
+    setMessage(adminMessage, "Loading all video requests...");
+
+    const { data: requests, error } = await supabaseClient
       .from("video_requests")
       .select(
-        "id,created_at,model,prompt,duration_seconds,aspect_ratio,status,final_video_url"
+        "id,created_at,model,prompt,duration_seconds,aspect_ratio,status,final_video_url,customer_name,email,user_id,creation_mode,visual_style,audio_preference,intended_platform,reference_image_path,first_frame_path,last_frame_path,reference_video_path"
       )
-      .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
+    if (loadId !== adminLoadId) return;
 
-    // Ignore results from an older request if the account changed.
-    if (
-      loadNumber !== dashboardLoadNumber ||
-      currentSession?.user?.id !== userId
-    ) {
+    adminRequestList.replaceChildren();
+
+    if (!requests || requests.length === 0) {
+      setMessage(adminMessage, "No video requests have been submitted yet.");
       return;
     }
 
-    requestList.replaceChildren();
+    setMessage(
+      adminMessage,
+      `${requests.length} total request${requests.length === 1 ? "" : "s"}.`
+    );
 
-    if (!data || data.length === 0) {
-      dashboardMessage.textContent =
-        "No requests yet. Submit your first video request using the form above.";
-      return;
-    }
-
-    dashboardMessage.textContent =
-      `You have ${data.length} video request${data.length === 1 ? "" : "s"}.`;
-
-    for (const request of data) {
-      requestList.append(renderCustomerRequest(request));
-    }
+    requests.forEach((request) => {
+      adminRequestList.append(renderAdminRequest(request));
+    });
   } catch (error) {
-    console.error("Could not load customer requests:", error);
+    console.error("Admin dashboard error:", error);
 
-    if (loadNumber === dashboardLoadNumber) {
-      dashboardMessage.textContent =
-        "Could not load your requests. Please tap Refresh to try again.";
+    if (loadId === adminLoadId) {
+      isAdmin = false;
+      adminPanel.hidden = false;
+      adminRequestList.replaceChildren();
+
+      setMessage(
+        adminMessage,
+        `Could not load the admin dashboard: ${error.message || "Check permissions."}`,
+        true
+      );
     }
   } finally {
-    if (
-      loadNumber === dashboardLoadNumber &&
-      refreshRequests
-    ) {
-      refreshRequests.disabled = false;
+    if (loadId === adminLoadId && refreshAdminRequests) {
+      refreshAdminRequests.disabled = false;
     }
   }
 }
 
-if (refreshRequests) {
-  refreshRequests.addEventListener("click", () => {
-    loadCustomerRequests();
+function renderAdminRequest(request) {
+  const card = makeElement("article", "request-card");
+
+  card.append(
+    makeElement("h3", "request-model", request.model || "Video request"),
+    makeElement("p", "request-date", `Submitted: ${formatDate(request.created_at)}`),
+    makeElement(
+      "p",
+      "request-details",
+      `Customer: ${request.customer_name || "Customer"}`
+    ),
+    makeElement("p", "request-details", `Email: ${request.email || "Not provided"}`),
+    makeElement("p", "request-details", `Request ID: ${request.id}`),
+    makeElement(
+      "p",
+      "request-details",
+      `Creation mode: ${request.creation_mode || "—"}`
+    ),
+    makeElement(
+      "p",
+      "request-details",
+      `Duration: ${request.duration_seconds ?? "—"} seconds · Ratio: ${request.aspect_ratio || "—"}`
+    ),
+    makeElement(
+      "p",
+      "request-details",
+      `Style: ${request.visual_style || "—"} · Audio: ${request.audio_preference || "—"} · Platform: ${request.intended_platform || "—"}`
+    ),
+    makeElement("h4", "request-detail-heading", "Customer prompt"),
+    makeElement("p", "request-prompt", request.prompt || "No prompt supplied.")
+  );
+
+  const uploadedFiles = [
+    ["Reference image", request.reference_image_path],
+    ["First frame", request.first_frame_path],
+    ["Last frame", request.last_frame_path],
+    ["Reference video", request.reference_video_path]
+  ];
+
+  uploadedFiles.forEach(([label, path]) => {
+    if (path) {
+      card.append(
+        makeElement("p", "request-details", `${label}: ${path}`)
+      );
+    }
   });
-}
 
-/* SIGN IN */
+  card.append(makeElement("h4", "request-detail-heading", "Update request"));
 
-if (loginButton) {
-  loginButton.addEventListener("click", async () => {
-    showAuthMessage("");
+  const statusLabel = makeElement("label", "", "Request status");
+  const statusSelect = document.createElement("select");
+  statusSelect.setAttribute("aria-label", "Request status");
 
-    const email = authEmail?.value.trim() || "";
-    const password = authPassword?.value || "";
+  const statuses = [
+    ["pending", "Pending — in queue"],
+    ["in_progress", "In progress — generating"],
+    ["completed", "Completed"],
+    ["rejected", "Rejected"]
+  ];
 
-    if (!email || !password) {
-      showAuthMessage("Enter your email and password.");
+  statuses.forEach(([value, label]) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    statusSelect.append(option);
+  });
+
+  statusSelect.value = statuses.some(([value]) => value === request.status)
+    ? request.status
+    : "pending";
+
+  statusLabel.append(statusSelect);
+  card.append(statusLabel);
+
+  const videoLabel = makeElement("label", "", "Final video URL");
+  const videoInput = document.createElement("input");
+
+  videoInput.type = "url";
+  videoInput.placeholder = "https://example.com/video.mp4";
+  videoInput.value = request.final_video_url || "";
+  videoInput.autocomplete = "url";
+
+  videoLabel.append(videoInput);
+  card.append(videoLabel);
+
+  const saveButton = makeElement("button", "button primary", "Save Changes");
+  saveButton.type = "button";
+
+  const saveMessage = makeElement("p", "request-note", "");
+  saveMessage.setAttribute("role", "status");
+
+  saveButton.addEventListener("click", async () => {
+    if (!currentSession?.user || !isAdmin) {
+      setMessage(saveMessage, "Administrator access is required.", true);
       return;
     }
 
-    loginButton.disabled = true;
-    loginButton.textContent = "Signing in...";
+    const newStatus = statusSelect.value;
+    const rawUrl = videoInput.value.trim();
+    const videoUrl = rawUrl ? safeHttpUrl(rawUrl) : null;
+
+    if (rawUrl && !videoUrl) {
+      setMessage(saveMessage, "Enter a valid HTTP or HTTPS video URL.", true);
+      return;
+    }
+
+    if (newStatus === "completed" && !videoUrl) {
+      setMessage(
+        saveMessage,
+        "Add a valid video URL before marking the request completed.",
+        true
+      );
+      return;
+    }
+
+    saveButton.disabled = true;
+    saveButton.textContent = "Saving...";
+    setMessage(saveMessage, "Saving changes...");
 
     try {
-      const { data, error } =
-        await supabaseClient.auth.signInWithPassword({
-          email,
-          password
-        });
+      const { error } = await supabaseClient
+        .from("video_requests")
+        .update({
+          status: newStatus,
+          final_video_url: videoUrl
+        })
+        .eq("id", request.id);
 
       if (error) throw error;
 
-      updateAccountUI(data.session);
-      if (authPassword) authPassword.value = "";
-      showAuthMessage("Signed in successfully.");
+      setMessage(saveMessage, "Changes saved successfully.");
+
+      await refreshDashboards();
     } catch (error) {
-      showAuthMessage(error.message || "Sign-in failed.");
+      console.error("Admin update error:", error);
+
+      setMessage(
+        saveMessage,
+        `Could not save: ${error.message || "Database update failed."}`,
+        true
+      );
     } finally {
-      loginButton.disabled = false;
-      loginButton.textContent = "Sign In";
+      saveButton.disabled = false;
+      saveButton.textContent = "Save Changes";
     }
   });
+
+  card.append(saveButton, saveMessage);
+
+  return card;
 }
 
-/* CREATE ACCOUNT */
+refreshAdminRequests?.addEventListener("click", loadAdminRequests);
 
-if (signupButton) {
-  signupButton.addEventListener("click", async () => {
-    showAuthMessage("");
+/* ===================== DASHBOARD REFRESH ===================== */
 
-    const name = authName?.value.trim() || "";
-    const email = authEmail?.value.trim() || "";
-    const password = authPassword?.value || "";
+async function refreshDashboards() {
+  if (!currentSession?.user) return;
 
-    if (!name) {
-      showAuthMessage("Enter your full name.");
-      return;
-    }
-
-    if (!email || !password) {
-      showAuthMessage("Enter your email and password.");
-      return;
-    }
-
-    if (password.length < 8) {
-      showAuthMessage("Use a password with at least 8 characters.");
-      return;
-    }
-
-    signupButton.disabled = true;
-    signupButton.textContent = "Creating account...";
-
-    try {
-      const { data, error } = await supabaseClient.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: SITE_URL,
-          data: {
-            full_name: name
-          }
-        }
-      });
-
-      if (error) throw error;
-
-      if (data.session) {
-        updateAccountUI(data.session);
-        if (authPassword) authPassword.value = "";
-        showAuthMessage("Your account is ready.");
-      } else {
-        showAuthMessage(
-          "Account created. If email confirmation is enabled, verify your email before signing in."
-        );
-      }
-    } catch (error) {
-      showAuthMessage(error.message || "Account creation failed.");
-    } finally {
-      signupButton.disabled = false;
-      signupButton.textContent = "Create Account";
-    }
-  });
+  await Promise.allSettled([
+    loadCustomerRequests(),
+    loadAdminRequests()
+  ]);
 }
 
-/* SIGN OUT */
-
-if (logoutButton) {
-  logoutButton.addEventListener("click", async () => {
-    logoutButton.disabled = true;
-
-    try {
-      const { error } = await supabaseClient.auth.signOut();
-      if (error) throw error;
-
-      updateAccountUI(null);
-      showAuthMessage("You have signed out.");
-    } catch (error) {
-      showAuthMessage(error.message || "Sign-out failed.");
-    } finally {
-      logoutButton.disabled = false;
-    }
-  });
-}
+/* ===================== AUTH STATE LISTENER ===================== */
 
 supabaseClient.auth.onAuthStateChange((_event, session) => {
   updateAccountUI(session);
-});
 
-/* PROMPT CHARACTER COUNTER */
-
-if (promptInput && charCount) {
-  promptInput.addEventListener("input", () => {
-    charCount.textContent = `${promptInput.value.length} / 2000`;
-  });
-}
-
-/* REFERENCE IMAGE PREVIEW */
-
-if (referenceInput) {
-  referenceInput.addEventListener("change", () => {
-    if (formMessage) formMessage.hidden = true;
-
-    const file = referenceInput.files?.[0];
-
-    if (!file) {
-      clearImage();
-      return;
-    }
-
-    try {
-      validateFile(file, "image");
-    } catch (error) {
-      showError(error.message);
-      referenceInput.value = "";
-      clearImage();
-      return;
-    }
-
-    if (previewImg) {
-      if (previewImg.dataset.objectUrl) {
-        URL.revokeObjectURL(previewImg.dataset.objectUrl);
+  if (session?.user) {
+    // Run after the auth callback finishes to avoid blocking auth events.
+    window.setTimeout(() => {
+      if (currentSession?.user?.id === session.user.id) {
+        refreshDashboards();
       }
+    }, 0);
+  } else {
+    customerLoadId++;
+    adminLoadId++;
+    isAdmin = false;
 
-      const objectUrl = URL.createObjectURL(file);
-      previewImg.src = objectUrl;
-      previewImg.dataset.objectUrl = objectUrl;
-    }
+    if (requestList) requestList.replaceChildren();
+    if (adminRequestList) adminRequestList.replaceChildren();
 
-    if (fileName) fileName.textContent = file.name;
-
-    if (fileSize) {
-      fileSize.textContent =
-        `${(file.size / 1024 / 1024).toFixed(2)} MB`;
-    }
-
-    if (imagePreview) imagePreview.hidden = false;
-    if (uploadTitle) uploadTitle.textContent = "Reference image selected";
-
-    if (uploadHint) {
-      uploadHint.textContent = "Remove the image or choose another one";
-    }
-  });
-}
-
-document.getElementById("removeImage")?.addEventListener("click", () => {
-  if (referenceInput) referenceInput.value;
-  if (referenceInput) referenceInput.value = "";
-  clearImage();
+    setMessage(dashboardMessage, "");
+    setMessage(adminMessage, "");
+  }
 });
 
-/* FILE VALIDATION AND UPLOAD */
+/* ===================== INITIAL PAGE SETUP ===================== */
 
-function validateFile(file, kind) {
-  if (!file) return;
+async function initializeZyvidra() {
+  updateCharacterCount();
+  updateUploadFields();
 
-  if (file.size > MAX_FILE_SIZE) {
-    throw new Error(`${file.name} exceeds the 50 MB limit.`);
-  }
+  if (dashboardPanel) dashboardPanel.hidden = true;
+  if (adminPanel) adminPanel.hidden = true;
 
-  const allowedTypes = kind === "video"
-    ? ["video/mp4", "video/webm"]
-    : ["image/jpeg", "image/png", "image/webp"];
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
 
-  if (!allowedTypes.includes(file.type)) {
-    throw new Error(
-      kind === "video"
-        ? "Reference videos must be MP4 or WEBM."
-        : "Images must be JPG, PNG, or WEBP."
-    );
-  }
-}
+    if (error) throw error;
 
-function getExtension(file) {
-  const extensions = {
-    "image/jpeg": "jpg",
-    "image/png": "png",
-    "image/webp": "webp",
-    "video/mp4": "mp4",
-    "video/webm": "webm"
-  };
+    updateAccountUI(data.session);
 
-  return extensions[file.type];
-}
-
-async function uploadFile(file, userId, requestId, fieldName, token) {
-  if (!file) return null;
-
-  const extension = getExtension(file);
-
-  if (!extension) {
-    throw new Error(`Unsupported file type: ${file.name}`);
-  }
-
-  const path =
-    `${userId}/requests/${requestId}/${fieldName}-${crypto.randomUUID()}.${extension}`;
-
-  const encodedPath = path.split("/").map(encodeURIComponent).join("/");
-
-  const response = await fetch(
-    `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${encodedPath}`,
-    {
-      method: "POST",
-      headers: {
-        apikey: SUPABASE_PUBLISHABLE_KEY,
-        Authorization: `Bearer ${token}`,
-        "Content-Type": file.type,
-        "x-upsert": "false"
-      },
-      body: file
+    if (data.session?.user) {
+      await refreshDashboards();
     }
-  );
+  } catch (error) {
+    console.error("Zyvidra initialization error:", error);
 
-  if (!response.ok) {
-    const details = await response.text();
-    console.error("Storage upload error:", response.status, details);
-    throw new Error(
-      `Could not upload ${file.name} (${response.status}).`
+    setMessage(
+      authMessage,
+      "Could not initialize your account session. Refresh the page and try again.",
+      true
     );
   }
 
-  return path;
-}
+  const yearElement = document.getElementById("year");
 
-function normalizeModel(value) {
-  return value === "Omni Flash" ? "Omni Flash" : "Veo 3";
-}
-
-function normalizeRatio(value) {
-  const ratio = String(value || "");
-
-  if (ratio.includes("9:16")) return "9:16";
-  if (ratio.includes("1:1")) return "1:1";
-
-  return "16:9";
-}
-
-function setFieldVisibility(input, visible) {
-  if (!input) return;
-
-  input.hidden = !visible;
-
-  const label = input.previousElementSibling;
-  if (label?.tagName === "LABEL") {
-    label.hidden = !visible;
+  if (yearElement) {
+    yearElement.textContent = String(new Date().getFullYear());
   }
 }
 
-function updateUploadFields() {
-  if (!creationModeSelect) return;
-
-  const mode = creationModeSelect.value;
-  const showFirst =
-    mode === "first_frame" || mode === "first_last_frame";
-  const showLast = mode === "first_last_frame";
-  const showReference = mode === "reference_media";
-
-  setFieldVisibility(firstFrameInput, showFirst);
-  setFieldVisibility(lastFrameInput, showLast);
-  setFieldVisibility(referenceVideoInput, showReference);
-
-  if (extraUploadFields) {
-    extraUploadFields.hidden =
-      !showFirst && !showLast && !showReference;
-  }
-
-  if (extraUploadHint) {
-    extraUploadHint.hidden =
-      !showFirst && !showLast && !showReference;
-  }
-
-  if (zone) zone.hidden = !showReference;
-
-  if (!showReference) {
-    if (referenceInput) referenceInput.value = "";
-    clearImage();
-    if (referenceVideoInput) referenceVideoInput.value = "";
-  }
-
-  if (!showFirst && firstFrameInput) firstFrameInput.value = "";
-  if (!showLast && lastFrameInput) lastFrameInput.value = "";
-}
-
-creationModeSelect?.addEventListener("change", updateUploadFields);
-
-/* DRAG AND DROP */
-
-if (zone) {
-  zone.addEventListener("dragover", (event) => {
-    event.preventDefault();
-    zone.style.borderColor = "#a78bfa";
-  });
-
-  zone.addEventListener("dragleave", () => {
-    zone.style.borderColor = "";
-  });
-
-  zone.addEventListener("drop", (event) => {
-    event.preventDefault();
-    zone.style.borderColor = "";
-
-    const file = event.dataTransfer.files?.[0];
-    if (!file || !referenceInput) return;
-
-    const transfer = new DataTransfer();
-    transfer.items.add(file);
-    referenceInput.files = transfer.files;
-    referenceInput.dispatchEvent(new Event("change"));
-  });
-}
-
-/* SUBMIT VIDEO REQUEST */
-
-if (form) {
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    if (formMessage) formMessage.hidden = true;
-
-    const submitButton = form.querySelector('[type="submit"]');
-    const originalButtonText =
-      submitButton?.textContent || "Create request";
-
-    try {
-      const { data: sessionData, error: sessionError } =
-        await supabaseClient.auth.getSession();
-
-      if (sessionError) throw sessionError;
-
-      const session = sessionData.session;
-
-      if (!session?.user || !session.access_token) {
-        throw new Error("Please sign in before submitting a request.");
-      }
-
-      const user = session.user;
-      const data = new FormData(form);
-      const prompt = promptInput?.value.trim() || "";
-      const creationMode = String(
-        data.get("creationMode") || "text_to_video"
-      );
-      const durationValue = String(data.get("duration") || "");
-      const durationMatch = durationValue.match(/\d+/);
-      const duration = durationMatch ? Number(durationMatch[0]) : NaN;
-
-      const referenceImage = referenceInput?.files?.[0] || null;
-      const firstFrame = firstFrameInput?.files?.[0] || null;
-      const lastFrame = lastFrameInput?.files?.[0] || null;
-      const referenceVideo = referenceVideoInput?.files?.[0] || null;
-
-      const customerName = getCustomerName(user);
-      const email = String(user.email || "").trim();
-
-      if (!email) {
-        throw new Error(
-          "Your account email could not be found. Please sign out and sign in again."
-        );
-      }
-
-      if (prompt.length < 10 || prompt.length > 2000) {
-        throw new Error("Your prompt must contain 10–2000 characters.");
-      }
-
-      if (![8, 10].includes(duration)) {
-        throw new Error("Please select 8 seconds or 10 seconds.");
-      }
-
-      if (![
-        "text_to_video",
-        "first_frame",
-        "first_last_frame",
-        "reference_media"
-      ].includes(creationMode)) {
-        throw new Error("Please select a valid video creation mode.");
-      }
-
-      if (creationMode === "first_frame" && !firstFrame) {
-        throw new Error("Please select a first-frame image.");
-      }
-
-      if (
-        creationMode === "first_last_frame" &&
-        (!firstFrame || !lastFrame)
-      ) {
-        throw new Error("Please select both frame images.");
-      }
-
-      if (
-        creationMode === "reference_media" &&
-        !referenceImage &&
-        !referenceVideo
-      ) {
-        throw new Error("Please select a reference image or video.");
-      }
-
-      validateFile(referenceImage, "image");
-      validateFile(firstFrame, "image");
-      validateFile(lastFrame, "image");
-      validateFile(referenceVideo, "video");
-
-      if (submitButton) {
-        submitButton.disabled = true;
-        submitButton.textContent = "Uploading and submitting...";
-      }
-
-      const requestId = crypto.randomUUID();
-      const token = session.access_token;
-
-      const referenceImagePath = await uploadFile(
-        referenceImage, user.id, requestId, "reference-image", token
-      );
-
-      const firstFramePath = await uploadFile(
-        firstFrame, user.id, requestId, "first-frame", token
-      );
-
-      const lastFramePath = await uploadFile(
-        lastFrame, user.id, requestId, "last-frame", token
-      );
-
-      const referenceVideoPath = await uploadFile(
-        referenceVideo, user.id, requestId, "reference-video", token
-      );
-
-      const request = {
-        id: requestId,
-        user_id: user.id,
-        model: normalizeModel(data.get("model")),
-        prompt,
-        duration_seconds: duration,
-        aspect_ratio: normalizeRatio(data.get("ratio")),
-        visual_style: String(data.get("style") || ""),
-        audio_preference: String(data.get("audio") || ""),
-        intended_platform: String(data.get("useCase") || ""),
-        customer_name: customerName,
-        email,
-        creation_mode: creationMode,
-        reference_image_path: referenceImagePath,
-        first_frame_path: firstFramePath,
-        last_frame_path: lastFramePath,
-        reference_video_path: referenceVideoPath,
-        status: "pending",
-        final_video_url: null
-      };
-
-      const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/video_requests`,
-        {
-          method: "POST",
-          headers: {
-            apikey: SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            Prefer: "return=minimal"
-          },
-          body: JSON.stringify(request)
-        }
-      );
-
-      if (!response.ok) {
-        const details = await response.text();
-        console.error(
-          "Request submission error:",
-          response.status,
-          details
-        );
-
-        throw new Error(
-          `Request submission failed (${response.status}). Please report this code.`
-        );
-      }
-
-      const successText = document.getElementById("successText");
-
-      if (successText) {
-        successText.textContent =
-          "Your request has been submitted and is pending review. Video generation does not start automatically.";
-      }
-
-      form.reset();
-      clearImage();
-
-      if (charCount) charCount.textContent = "0 / 2000";
-
-      updateUploadFields();
-
-      if (dialog?.showModal) {
-        dialog.showModal();
-      } else {
-        alert("Your video request has been submitted and is pending review.");
-      }
-
-      // Refresh the customer's dashboard after a successful submission.
-      await loadCustomerRequests();
-    } catch (error) {
-      console.error("Video request error:", error);
-      showError(error.message || "Something went wrong. Please try again.");
-    } finally {
-      if (submitButton) {
-        submitButton.disabled = false;
-        submitButton.textContent = originalButtonText;
-      }
-    }
-  });
-}
-
-document.getElementById("closeDialog")?.addEventListener("click", () => {
-  dialog?.close();
-});
-
-/* INITIAL PAGE STATE */
-
-if (form) form.hidden = true;
-if (authPanel) authPanel.hidden = false;
-if (logoutButton) logoutButton.hidden = true;
-if (dashboardPanel) dashboardPanel.hidden = true;
-
-updateUploadFields();
-
-getCurrentSession().catch((error) => {
-  console.error("Session initialization failed:", error);
-  showAuthMessage(
-    "Unable to check your sign-in. Refresh the page and try again."
-  );
-});
+initializeZyvidra();

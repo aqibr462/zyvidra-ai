@@ -1,4 +1,3 @@
-
 /* =========================================================
    ZYVIDRA — COMPLETE WEBSITE SCRIPT
    Authentication, video requests, uploads, customer dashboard,
@@ -11,7 +10,7 @@
 
 const SUPABASE_URL = "https://laixvuhoyozespdsypke.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
-  "sb_publishable_UwBjXqHLTs1Oy3wkFz3NlQ_JwRC4heT";
+  "sb_publishable_UwXqHLTs1Oy3wkFz3NlQ_JwRC4heT";
 const STORAGE_BUCKET = "zyvidra-files";
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const SITE_URL = "https://aqibr462.github.io/zyvidra-ai/";
@@ -102,6 +101,7 @@ function makeElement(tag, className = "", text = "") {
   const element = document.createElement(tag);
 
   if (className) element.className = className;
+
   if (text !== undefined && text !== null) {
     element.textContent = String(text);
   }
@@ -113,7 +113,10 @@ function formatDate(value) {
   if (!value) return "Date unavailable";
 
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Date unavailable";
+
+  if (Number.isNaN(date.getTime())) {
+    return "Date unavailable";
+  }
 
   return date.toLocaleString();
 }
@@ -141,14 +144,18 @@ function getStatusLabel(status, hasVideo = false) {
   switch (status) {
     case "pending":
       return "In Queue";
+
     case "in_progress":
       return "Generating Video";
+
     case "completed":
       return hasVideo
         ? "Ready to Download"
         : "Completed — Awaiting Delivery Link";
+
     case "rejected":
       return "Not Approved";
+
     default:
       return status || "Pending";
   }
@@ -199,7 +206,10 @@ function makeSafeFileName(name) {
 }
 
 function getSelectedModel() {
-  return document.querySelector('input[name="model"]:checked')?.value || "Veo 3";
+  return (
+    document.querySelector('input[name="model"]:checked')?.value ||
+    "Veo 3"
+  );
 }
 
 function getCreationMode() {
@@ -261,6 +271,7 @@ async function signUp() {
   }
 
   if (signupButton) signupButton.disabled = true;
+
   setMessage(authMessage, "Creating your account...");
 
   try {
@@ -277,7 +288,12 @@ async function signUp() {
 
     if (data.session) {
       updateAccountUI(data.session);
-      setMessage(authMessage, "Account created and signed in successfully.");
+
+      setMessage(
+        authMessage,
+        "Account created and signed in successfully."
+      );
+
       await refreshDashboards();
     } else {
       setMessage(
@@ -306,22 +322,29 @@ async function signIn() {
   }
 
   if (loginButton) loginButton.disabled = true;
+
   setMessage(authMessage, "Signing in...");
 
   try {
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-      email,
-      password
-    });
+    const { data, error } =
+      await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
 
     if (error) throw error;
 
     updateAccountUI(data.session);
+
     setMessage(authMessage, "Signed in successfully.");
 
     await refreshDashboards();
   } catch (error) {
-    setMessage(authMessage, error.message || "Sign-in failed.", true);
+    setMessage(
+      authMessage,
+      error.message || "Sign-in failed.",
+      true
+    );
   } finally {
     if (loginButton) loginButton.disabled = false;
   }
@@ -332,10 +355,12 @@ async function signOut() {
 
   try {
     const { error } = await supabaseClient.auth.signOut();
+
     if (error) throw error;
 
     currentSession = null;
     isAdmin = false;
+
     updateAccountUI(null);
 
     if (requestList) requestList.replaceChildren();
@@ -345,7 +370,11 @@ async function signOut() {
     setMessage(dashboardMessage, "");
     setMessage(adminMessage, "");
   } catch (error) {
-    setMessage(authMessage, error.message || "Could not sign out.", true);
+    setMessage(
+      authMessage,
+      error.message || "Could not sign out.",
+      true
+    );
   } finally {
     if (logoutButton) logoutButton.disabled = false;
   }
@@ -383,8 +412,10 @@ function updateUploadFields() {
   const videoLabel = document.querySelector('label[for="referenceVideo"]');
 
   const showReference = mode === "reference_media";
+
   const showFirstFrame =
     mode === "first_frame" || mode === "first_last_frame";
+
   const showLastFrame = mode === "first_last_frame";
   const showReferenceVideo = mode === "reference_media";
 
@@ -419,15 +450,25 @@ function updateUploadFields() {
     uploadHint.textContent = "PNG, JPG or WEBP · maximum 50 MB";
   }
 
-  if (!showReference && referenceInput) referenceInput.value = "";
-  if (!showFirstFrame && firstFrameInput) firstFrameInput.value = "";
-  if (!showLastFrame && lastFrameInput) lastFrameInput.value = "";
+  if (!showReference && referenceInput) {
+    referenceInput.value = "";
+  }
+
+  if (!showFirstFrame && firstFrameInput) {
+    firstFrameInput.value = "";
+  }
+
+  if (!showLastFrame && lastFrameInput) {
+    lastFrameInput.value = "";
+  }
+
   if (!showReferenceVideo && referenceVideoInput) {
     referenceVideoInput.value = "";
   }
 
   if (!showReference && imagePreview) {
     imagePreview.hidden = true;
+
     if (previewImg) previewImg.removeAttribute("src");
     if (fileName) fileName.textContent = "";
     if (fileSize) fileSize.textContent = "";
@@ -502,9 +543,11 @@ async function uploadFile(file, userId, label) {
   if (!file) return null;
 
   const error = validateFile(file, [], label);
+
   if (error) throw new Error(error);
 
   const safeName = makeSafeFileName(file.name);
+
   const uniqueId =
     typeof crypto.randomUUID === "function"
       ? crypto.randomUUID()
@@ -538,8 +581,13 @@ function validateRequestFiles(mode) {
   }
 
   if (mode === "first_last_frame") {
-    if (!firstFrameFile) return "Please upload the first-frame image.";
-    if (!lastFrameFile) return "Please upload the last-frame image.";
+    if (!firstFrameFile) {
+      return "Please upload the first-frame image.";
+    }
+
+    if (!lastFrameFile) {
+      return "Please upload the last-frame image.";
+    }
   }
 
   if (
@@ -551,14 +599,31 @@ function validateRequestFiles(mode) {
   }
 
   const checks = [
-    [referenceFile, ["image/jpeg", "image/png", "image/webp"], "Reference image"],
-    [firstFrameFile, ["image/jpeg", "image/png", "image/webp"], "First frame"],
-    [lastFrameFile, ["image/jpeg", "image/png", "image/webp"], "Last frame"],
-    [referenceVideoFile, ["video/mp4", "video/webm"], "Reference video"]
+    [
+      referenceFile,
+      ["image/jpeg", "image/png", "image/webp"],
+      "Reference image"
+    ],
+    [
+      firstFrameFile,
+      ["image/jpeg", "image/png", "image/webp"],
+      "First frame"
+    ],
+    [
+      lastFrameFile,
+      ["image/jpeg", "image/png", "image/webp"],
+      "Last frame"
+    ],
+    [
+      referenceVideoFile,
+      ["video/mp4", "video/webm"],
+      "Reference video"
+    ]
   ];
 
   for (const [file, types, label] of checks) {
     const error = validateFile(file, types, label);
+
     if (error) return error;
   }
 
@@ -591,6 +656,7 @@ async function submitVideoRequest(event) {
       "Please describe your video in at least 10 characters.",
       true
     );
+
     promptInput?.focus();
     return;
   }
@@ -616,7 +682,10 @@ async function submitVideoRequest(event) {
     submitButton.textContent = "Submitting...";
   }
 
-  setMessage(formMessage, "Uploading files and submitting your request...");
+  setMessage(
+    formMessage,
+    "Uploading files and submitting your request..."
+  );
 
   try {
     const referencePath = await uploadFile(
@@ -646,6 +715,24 @@ async function submitVideoRequest(event) {
     const durationSeconds =
       parseInt(durationInput?.value || "8", 10) || 8;
 
+    /*
+      ASPECT-RATIO FIX:
+      The database accepts only 16:9, 9:16, and 1:1.
+      Remove descriptive labels such as " — Portrait"
+      before inserting the request into Supabase.
+    */
+
+    const selectedRatio = ratioInput?.value || "9:16";
+    const aspectRatio = selectedRatio.split(" — ")[0].trim();
+
+    const allowedRatios = ["16:9", "9:16", "1:1"];
+
+    if (!allowedRatios.includes(aspectRatio)) {
+      throw new Error(
+        `Unsupported aspect ratio: "${selectedRatio}". Please select 16:9, 9:16, or 1:1.`
+      );
+    }
+
     const payload = {
       user_id: user.id,
       customer_name: getCustomerName(user),
@@ -653,7 +740,7 @@ async function submitVideoRequest(event) {
       model: getSelectedModel(),
       prompt,
       duration_seconds: durationSeconds,
-      aspect_ratio: ratioInput?.value || "9:16 — Portrait",
+      aspect_ratio: aspectRatio,
       visual_style: styleInput?.value || null,
       audio_preference: audioInput?.value || null,
       intended_platform: useCaseInput?.value || null,
@@ -667,11 +754,10 @@ async function submitVideoRequest(event) {
     };
 
     /*
-      FIX:
       Insert without requesting the inserted row back.
-      This avoids requiring SELECT permission for INSERT RETURNING.
-      If insertion fails, display the actual Supabase error.
+      Display the actual Supabase error if submission fails.
     */
+
     const { error } = await supabaseClient
       .from("video_requests")
       .insert(payload);
@@ -689,7 +775,10 @@ async function submitVideoRequest(event) {
       );
     }
 
-    setMessage(formMessage, "Your video request has been submitted.");
+    setMessage(
+      formMessage,
+      "Your video request has been submitted."
+    );
 
     if (successText) {
       successText.textContent =
@@ -756,6 +845,7 @@ async function loadCustomerRequests() {
   }
 
   dashboardPanel.hidden = false;
+
   setMessage(dashboardMessage, "Loading your requests...");
   requestList.replaceChildren();
 
@@ -769,6 +859,7 @@ async function loadCustomerRequests() {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
+
     if (loadId !== customerLoadId) return;
 
     requestList.replaceChildren();
@@ -778,6 +869,7 @@ async function loadCustomerRequests() {
         dashboardMessage,
         "No requests yet. Submit your first video request using the form above."
       );
+
       return;
     }
 
@@ -804,14 +896,23 @@ async function loadCustomerRequests() {
 
 function renderCustomerRequest(request) {
   const card = makeElement("article", "request-card");
+
   const videoUrl =
     request.status === "completed"
       ? safeHttpUrl(request.final_video_url)
       : null;
 
   card.append(
-    makeElement("h3", "request-model", request.model || "Video request"),
-    makeElement("p", "request-date", `Submitted: ${formatDate(request.created_at)}`),
+    makeElement(
+      "h3",
+      "request-model",
+      request.model || "Video request"
+    ),
+    makeElement(
+      "p",
+      "request-date",
+      `Submitted: ${formatDate(request.created_at)}`
+    ),
     makeElement(
       "p",
       "request-details",
@@ -826,10 +927,16 @@ function renderCustomerRequest(request) {
   );
 
   if (videoUrl) {
-    const link = makeElement("a", "button primary", "Download / Watch Video");
+    const link = makeElement(
+      "a",
+      "button primary",
+      "Download / Watch Video"
+    );
+
     link.href = videoUrl;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
+
     card.append(link);
   }
 
@@ -847,28 +954,37 @@ async function loadAdminRequests() {
 
   adminPanel.hidden = true;
   isAdmin = false;
+
   adminRequestList.replaceChildren();
 
   if (!currentSession?.user) return;
 
   setMessage(adminMessage, "Verifying administrator access...");
 
-  if (refreshAdminRequests) refreshAdminRequests.disabled = true;
+  if (refreshAdminRequests) {
+    refreshAdminRequests.disabled = true;
+  }
 
   try {
     const { data: roleData, error: roleError } =
       await supabaseClient.rpc("is_zyvidra_admin");
 
     if (roleError) throw roleError;
+
     if (loadId !== adminLoadId) return;
 
     if (roleData !== true) {
-      setMessage(adminMessage, "This account does not have administrator access.");
+      setMessage(
+        adminMessage,
+        "This account does not have administrator access."
+      );
+
       return;
     }
 
     isAdmin = true;
     adminPanel.hidden = false;
+
     setMessage(adminMessage, "Loading all video requests...");
 
     const { data: requests, error } = await supabaseClient
@@ -879,12 +995,17 @@ async function loadAdminRequests() {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
+
     if (loadId !== adminLoadId) return;
 
     adminRequestList.replaceChildren();
 
     if (!requests || requests.length === 0) {
-      setMessage(adminMessage, "No video requests have been submitted yet.");
+      setMessage(
+        adminMessage,
+        "No video requests have been submitted yet."
+      );
+
       return;
     }
 
@@ -902,6 +1023,7 @@ async function loadAdminRequests() {
     if (loadId === adminLoadId) {
       isAdmin = false;
       adminPanel.hidden = false;
+
       adminRequestList.replaceChildren();
 
       setMessage(
@@ -921,12 +1043,36 @@ function renderAdminRequest(request) {
   const card = makeElement("article", "request-card");
 
   card.append(
-    makeElement("h3", "request-model", request.model || "Video request"),
-    makeElement("p", "request-date", `Submitted: ${formatDate(request.created_at)}`),
-    makeElement("p", "request-details", `Customer: ${request.customer_name || "Customer"}`),
-    makeElement("p", "request-details", `Email: ${request.email || "Not provided"}`),
-    makeElement("p", "request-details", `Request ID: ${request.id}`),
-    makeElement("p", "request-details", `Creation mode: ${request.creation_mode || "—"}`),
+    makeElement(
+      "h3",
+      "request-model",
+      request.model || "Video request"
+    ),
+    makeElement(
+      "p",
+      "request-date",
+      `Submitted: ${formatDate(request.created_at)}`
+    ),
+    makeElement(
+      "p",
+      "request-details",
+      `Customer: ${request.customer_name || "Customer"}`
+    ),
+    makeElement(
+      "p",
+      "request-details",
+      `Email: ${request.email || "Not provided"}`
+    ),
+    makeElement(
+      "p",
+      "request-details",
+      `Request ID: ${request.id}`
+    ),
+    makeElement(
+      "p",
+      "request-details",
+      `Creation mode: ${request.creation_mode || "—"}`
+    ),
     makeElement(
       "p",
       "request-details",
@@ -937,8 +1083,16 @@ function renderAdminRequest(request) {
       "request-details",
       `Style: ${request.visual_style || "—"} · Audio: ${request.audio_preference || "—"} · Platform: ${request.intended_platform || "—"}`
     ),
-    makeElement("h4", "request-detail-heading", "Customer prompt"),
-    makeElement("p", "request-prompt", request.prompt || "No prompt supplied.")
+    makeElement(
+      "h4",
+      "request-detail-heading",
+      "Customer prompt"
+    ),
+    makeElement(
+      "p",
+      "request-prompt",
+      request.prompt || "No prompt supplied."
+    )
   );
 
   const uploadedFiles = [
@@ -950,14 +1104,19 @@ function renderAdminRequest(request) {
 
   uploadedFiles.forEach(([label, path]) => {
     if (path) {
-      card.append(makeElement("p", "request-details", `${label}: ${path}`));
+      card.append(
+        makeElement("p", "request-details", `${label}: ${path}`)
+      );
     }
   });
 
-  card.append(makeElement("h4", "request-detail-heading", "Update request"));
+  card.append(
+    makeElement("h4", "request-detail-heading", "Update request")
+  );
 
   const statusLabel = makeElement("label", "", "Request status");
   const statusSelect = document.createElement("select");
+
   statusSelect.setAttribute("aria-label", "Request status");
 
   const statuses = [
@@ -969,12 +1128,16 @@ function renderAdminRequest(request) {
 
   statuses.forEach(([value, label]) => {
     const option = document.createElement("option");
+
     option.value = value;
     option.textContent = label;
+
     statusSelect.append(option);
   });
 
-  statusSelect.value = statuses.some(([value]) => value === request.status)
+  statusSelect.value = statuses.some(
+    ([value]) => value === request.status
+  )
     ? request.status
     : "pending";
 
@@ -992,15 +1155,26 @@ function renderAdminRequest(request) {
   videoLabel.append(videoInput);
   card.append(videoLabel);
 
-  const saveButton = makeElement("button", "button primary", "Save Changes");
+  const saveButton = makeElement(
+    "button",
+    "button primary",
+    "Save Changes"
+  );
+
   saveButton.type = "button";
 
   const saveMessage = makeElement("p", "request-note", "");
+
   saveMessage.setAttribute("role", "status");
 
   saveButton.addEventListener("click", async () => {
     if (!currentSession?.user || !isAdmin) {
-      setMessage(saveMessage, "Administrator access is required.", true);
+      setMessage(
+        saveMessage,
+        "Administrator access is required.",
+        true
+      );
+
       return;
     }
 
@@ -1009,7 +1183,12 @@ function renderAdminRequest(request) {
     const videoUrl = rawUrl ? safeHttpUrl(rawUrl) : null;
 
     if (rawUrl && !videoUrl) {
-      setMessage(saveMessage, "Enter a valid HTTP or HTTPS video URL.", true);
+      setMessage(
+        saveMessage,
+        "Enter a valid HTTP or HTTPS video URL.",
+        true
+      );
+
       return;
     }
 
@@ -1019,11 +1198,13 @@ function renderAdminRequest(request) {
         "Add a valid video URL before marking the request completed.",
         true
       );
+
       return;
     }
 
     saveButton.disabled = true;
     saveButton.textContent = "Saving...";
+
     setMessage(saveMessage, "Saving changes...");
 
     try {
@@ -1038,6 +1219,7 @@ function renderAdminRequest(request) {
       if (error) throw error;
 
       setMessage(saveMessage, "Changes saved successfully.");
+
       await refreshDashboards();
     } catch (error) {
       console.error("Admin update error:", error);
@@ -1085,6 +1267,7 @@ supabaseClient.auth.onAuthStateChange((_event, session) => {
   } else {
     customerLoadId++;
     adminLoadId++;
+
     isAdmin = false;
 
     if (requestList) requestList.replaceChildren();
@@ -1118,6 +1301,7 @@ async function initializeZyvidra() {
     console.error("Zyvidra initialization error:", error);
 
     updateAccountUI(null);
+
     setMessage(
       authMessage,
       "Could not initialize your account session. Refresh the page and try again.",

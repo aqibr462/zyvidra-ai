@@ -36,15 +36,20 @@ const formMessage = document.getElementById("formMessage");
 const zone = document.querySelector(".upload-zone");
 const creationModeSelect = document.getElementById("creationMode");
 const extraUploadFields = document.querySelector(".extra-upload-fields");
-const extraUploadHint = extraUploadFields?.querySelector(".field-hint");
+const extraUploadHint =
+  extraUploadFields?.querySelector(".field-hint");
 
-const customerEmailInput = document.getElementById("email");
+const yearElement = document.getElementById("year");
 
-document.getElementById("year").textContent = new Date().getFullYear();
+if (yearElement) {
+  yearElement.textContent = new Date().getFullYear();
+}
 
 if (!window.supabase?.createClient) {
-  authMessage.textContent =
-    "Unable to load the account system. Refresh the page and try again.";
+  if (authMessage) {
+    authMessage.textContent =
+      "Unable to load the account system. Refresh the page and try again.";
+  }
   throw new Error("Supabase library was not loaded.");
 }
 
@@ -56,48 +61,54 @@ const supabaseClient = window.supabase.createClient(
 let currentSession = null;
 
 function showAuthMessage(message) {
-  authMessage.textContent = message;
+  if (authMessage) authMessage.textContent = message;
 }
 
 function showError(message) {
+  if (!formMessage) return;
   formMessage.textContent = message;
   formMessage.hidden = false;
 }
 
 function clearImage() {
-  imagePreview.hidden = true;
-  previewImg.removeAttribute("src");
-  fileName.textContent = "";
-  fileSize.textContent = "";
-  uploadTitle.textContent = "Choose an image or drop it here";
-  uploadHint.textContent = "PNG, JPG or WEBP · maximum 50 MB";
+  if (imagePreview) imagePreview.hidden = true;
+  if (previewImg) previewImg.removeAttribute("src");
+  if (fileName) fileName.textContent = "";
+  if (fileSize) fileSize.textContent = "";
+
+  if (uploadTitle) {
+    uploadTitle.textContent = "Choose an image or drop it here";
+  }
+
+  if (uploadHint) {
+    uploadHint.textContent =
+      "PNG, JPG or WEBP · maximum 50 MB";
+  }
 }
 
-/* FIXED: corrected account UI function and brace structure */
+function getCustomerName(user) {
+  const metadata = user?.user_metadata || {};
+
+  return String(
+    metadata.full_name ||
+    metadata.name ||
+    user?.email?.split("@")[0] ||
+    "Customer"
+  ).trim();
+}
+
 function updateAccountUI(session) {
   currentSession = session;
-
   const signedIn = Boolean(session?.user);
 
-  authPanel.hidden = signedIn;
-  form.hidden = !signedIn;
-  logoutButton.hidden = !signedIn;
-  loginButton.hidden = signedIn;
-  signupButton.hidden = signedIn;
+  if (authPanel) authPanel.hidden = signedIn;
+  if (form) form.hidden = !signedIn;
+  if (logoutButton) logoutButton.hidden = !signedIn;
+  if (loginButton) loginButton.hidden = signedIn;
+  if (signupButton) signupButton.hidden = signedIn;
 
   if (signedIn) {
-    const user = session.user;
-
-    if (customerEmailInput) {
-      customerEmailInput.value = user.email || "";
-      customerEmailInput.readOnly = true;
-    }
-
     showAuthMessage("You are signed in.");
-  } else {
-    if (customerEmailInput) {
-      customerEmailInput.value = "";
-    }
   }
 
   updateUploadFields();
@@ -111,147 +122,165 @@ async function getCurrentSession() {
   updateAccountUI(data.session);
 }
 
-loginButton.addEventListener("click", async () => {
-  showAuthMessage("");
+if (loginButton) {
+  loginButton.addEventListener("click", async () => {
+    showAuthMessage("");
 
-  const email = authEmail.value.trim();
-  const password = authPassword.value;
+    const email = authEmail?.value.trim() || "";
+    const password = authPassword?.value || "";
 
-  if (!email || !password) {
-    showAuthMessage("Enter your email and password.");
-    return;
-  }
-
-  loginButton.disabled = true;
-  loginButton.textContent = "Signing in...";
-
-  try {
-    const { error } = await supabaseClient.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    if (error) throw error;
-
-    authPassword.value = "";
-    showAuthMessage("Signed in successfully.");
-  } catch (error) {
-    showAuthMessage(error.message || "Sign-in failed.");
-  } finally {
-    loginButton.disabled = false;
-    loginButton.textContent = "Sign In";
-  }
-});
-
-signupButton.addEventListener("click", async () => {
-  showAuthMessage("");
-
-  const name = authName.value.trim();
-  const email = authEmail.value.trim();
-  const password = authPassword.value;
-
-  if (!name) {
-    showAuthMessage("Enter your full name.");
-    return;
-  }
-
-  if (!email || !password) {
-    showAuthMessage("Enter your email and password.");
-    return;
-  }
-
-  if (password.length < 8) {
-    showAuthMessage("Use a password with at least 8 characters.");
-    return;
-  }
-
-  signupButton.disabled = true;
-  signupButton.textContent = "Creating account...";
-
-  try {
-    const { data, error } = await supabaseClient.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: SITE_URL,
-        data: {
-          full_name: name
-        }
-      }
-    });
-
-    if (error) throw error;
-
-    if (data.session) {
-      updateAccountUI(data.session);
-      authPassword.value = "";
-      showAuthMessage("Your account is ready.");
-    } else {
-      showAuthMessage(
-        "Account created. Check your email and click the verification link, then sign in."
-      );
+    if (!email || !password) {
+      showAuthMessage("Enter your email and password.");
+      return;
     }
-  } catch (error) {
-    showAuthMessage(error.message || "Account creation failed.");
-  } finally {
-    signupButton.disabled = false;
-    signupButton.textContent = "Create Account";
-  }
-});
 
-logoutButton.addEventListener("click", async () => {
-  logoutButton.disabled = true;
+    loginButton.disabled = true;
+    loginButton.textContent = "Signing in...";
 
-  try {
-    const { error } = await supabaseClient.auth.signOut();
+    try {
+      const { data, error } =
+        await supabaseClient.auth.signInWithPassword({
+          email,
+          password
+        });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    showAuthMessage("You have signed out.");
-  } catch (error) {
-    showAuthMessage(error.message || "Sign-out failed.");
-  } finally {
-    logoutButton.disabled = false;
-  }
-});
+      updateAccountUI(data.session);
+      if (authPassword) authPassword.value = "";
+      showAuthMessage("Signed in successfully.");
+    } catch (error) {
+      showAuthMessage(error.message || "Sign-in failed.");
+    } finally {
+      loginButton.disabled = false;
+      loginButton.textContent = "Sign In";
+    }
+  });
+}
 
-supabaseClient.auth.onAuthStateChange((event, session) => {
+if (signupButton) {
+  signupButton.addEventListener("click", async () => {
+    showAuthMessage("");
+
+    const name = authName?.value.trim() || "";
+    const email = authEmail?.value.trim() || "";
+    const password = authPassword?.value || "";
+
+    if (!name) {
+      showAuthMessage("Enter your full name.");
+      return;
+    }
+
+    if (!email || !password) {
+      showAuthMessage("Enter your email and password.");
+      return;
+    }
+
+    if (password.length < 8) {
+      showAuthMessage("Use a password with at least 8 characters.");
+      return;
+    }
+
+    signupButton.disabled = true;
+    signupButton.textContent = "Creating account...";
+
+    try {
+      const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: SITE_URL,
+          data: {
+            full_name: name
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.session) {
+        updateAccountUI(data.session);
+        if (authPassword) authPassword.value = "";
+        showAuthMessage("Your account is ready.");
+      } else {
+        showAuthMessage(
+          "Account created. If email confirmation is enabled, verify your email before signing in."
+        );
+      }
+    } catch (error) {
+      showAuthMessage(error.message || "Account creation failed.");
+    } finally {
+      signupButton.disabled = false;
+      signupButton.textContent = "Create Account";
+    }
+  });
+}
+
+if (logoutButton) {
+  logoutButton.addEventListener("click", async () => {
+    logoutButton.disabled = true;
+
+    try {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) throw error;
+
+      updateAccountUI(null);
+      showAuthMessage("You have signed out.");
+    } catch (error) {
+      showAuthMessage(error.message || "Sign-out failed.");
+    } finally {
+      logoutButton.disabled = false;
+    }
+  });
+}
+
+supabaseClient.auth.onAuthStateChange((_event, session) => {
   updateAccountUI(session);
 });
 
-promptInput.addEventListener("input", () => {
-  charCount.textContent = `${promptInput.value.length} / 2000`;
-});
+if (promptInput && charCount) {
+  promptInput.addEventListener("input", () => {
+    charCount.textContent = `${promptInput.value.length} / 2000`;
+  });
+}
 
-referenceInput.addEventListener("change", () => {
-  formMessage.hidden = true;
+if (referenceInput) {
+  referenceInput.addEventListener("change", () => {
+    if (formMessage) formMessage.hidden = true;
 
-  const file = referenceInput.files?.[0];
+    const file = referenceInput.files?.[0];
 
-  if (!file) {
-    clearImage();
-    return;
-  }
+    if (!file) {
+      clearImage();
+      return;
+    }
 
-  try {
-    validateFile(file, "image");
-  } catch (error) {
-    showError(error.message);
-    referenceInput.value = "";
-    clearImage();
-    return;
-  }
+    try {
+      validateFile(file, "image");
+    } catch (error) {
+      showError(error.message);
+      referenceInput.value = "";
+      clearImage();
+      return;
+    }
 
-  previewImg.src = URL.createObjectURL(file);
-  fileName.textContent = file.name;
-  fileSize.textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
-  imagePreview.hidden = false;
-  uploadTitle.textContent = "Reference image selected";
-  uploadHint.textContent = "Remove the image or choose another one";
-});
+    if (previewImg) previewImg.src = URL.createObjectURL(file);
+    if (fileName) fileName.textContent = file.name;
+    if (fileSize) {
+      fileSize.textContent =
+        `${(file.size / 1024 / 1024).toFixed(2)} MB`;
+    }
 
-document.getElementById("removeImage").addEventListener("click", () => {
-  referenceInput.value = "";
+    if (imagePreview) imagePreview.hidden = false;
+    if (uploadTitle) uploadTitle.textContent = "Reference image selected";
+    if (uploadHint) {
+      uploadHint.textContent = "Remove the image or choose another one";
+    }
+  });
+}
+
+document.getElementById("removeImage")?.addEventListener("click", () => {
+  if (referenceInput) referenceInput.value = "";
   clearImage();
 });
 
@@ -290,8 +319,14 @@ function getExtension(file) {
 async function uploadFile(file, userId, requestId, fieldName, token) {
   if (!file) return null;
 
+  const extension = getExtension(file);
+
+  if (!extension) {
+    throw new Error(`Unsupported file type: ${file.name}`);
+  }
+
   const path =
-    `${userId}/requests/${requestId}/${fieldName}-${crypto.randomUUID()}.${getExtension(file)}`;
+    `${userId}/requests/${requestId}/${fieldName}-${crypto.randomUUID()}.${extension}`;
 
   const encodedPath = path.split("/").map(encodeURIComponent).join("/");
 
@@ -312,7 +347,6 @@ async function uploadFile(file, userId, requestId, fieldName, token) {
   if (!response.ok) {
     const details = await response.text();
     console.error("Storage upload error:", response.status, details);
-
     throw new Error(
       `Could not upload ${file.name} (${response.status}).`
     );
@@ -340,7 +374,6 @@ function setFieldVisibility(input, visible) {
   input.hidden = !visible;
 
   const label = input.previousElementSibling;
-
   if (label?.tagName === "LABEL") {
     label.hidden = !visible;
   }
@@ -369,26 +402,16 @@ function updateUploadFields() {
       !showFirst && !showLast && !showReference;
   }
 
-  if (zone) {
-    zone.hidden = !showReference;
-  }
+  if (zone) zone.hidden = !showReference;
 
   if (!showReference) {
     if (referenceInput) referenceInput.value = "";
     clearImage();
-
-    if (referenceVideoInput) {
-      referenceVideoInput.value = "";
-    }
+    if (referenceVideoInput) referenceVideoInput.value = "";
   }
 
-  if (!showFirst && firstFrameInput) {
-    firstFrameInput.value = "";
-  }
-
-  if (!showLast && lastFrameInput) {
-    lastFrameInput.value = "";
-  }
+  if (!showFirst && firstFrameInput) firstFrameInput.value = "";
+  if (!showLast && lastFrameInput) lastFrameInput.value = "";
 }
 
 creationModeSelect?.addEventListener("change", updateUploadFields);
@@ -408,218 +431,218 @@ if (zone) {
     zone.style.borderColor = "";
 
     const file = event.dataTransfer.files?.[0];
-
-    if (!file) return;
+    if (!file || !referenceInput) return;
 
     const transfer = new DataTransfer();
     transfer.items.add(file);
-
     referenceInput.files = transfer.files;
     referenceInput.dispatchEvent(new Event("change"));
   });
 }
 
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  formMessage.hidden = true;
+if (form) {
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
 
-  const submitButton = form.querySelector('[type="submit"]');
-  const originalButtonText = submitButton.textContent;
+    if (formMessage) formMessage.hidden = true;
 
-  try {
-    const { data: sessionData, error: sessionError } =
-      await supabaseClient.auth.getSession();
+    const submitButton = form.querySelector('[type="submit"]');
+    const originalButtonText =
+      submitButton?.textContent || "Create request";
 
-    if (sessionError) throw sessionError;
+    try {
+      const { data: sessionData, error: sessionError } =
+        await supabaseClient.auth.getSession();
 
-    const session = sessionData.session;
+      if (sessionError) throw sessionError;
 
-    if (!session?.user || !session.access_token) {
-      throw new Error("Please sign in before submitting a request.");
-    }
+      const session = sessionData.session;
 
-    const user = session.user;
-    const data = new FormData(form);
-    const prompt = promptInput.value.trim();
-    const creationMode =
-      String(data.get("creationMode") || "text_to_video");
-    const durationValue = String(data.get("duration") || "");
-    const durationMatch = durationValue.match(/\d+/);
-    const duration = durationMatch ? Number(durationMatch[0]) : NaN;
-
-    const referenceImage = referenceInput.files?.[0] || null;
-    const firstFrame = firstFrameInput.files?.[0] || null;
-    const lastFrame = lastFrameInput.files?.[0] || null;
-    const referenceVideo = referenceVideoInput.files?.[0] || null;
-
-    const customerName =
-      String(user.user_metadata?.full_name || "").trim();
-    const email = String(user.email || "").trim();
-
-    if (!customerName || !email) {
-      throw new Error(
-        "Your account is missing a name or email. Please sign out and sign in again."
-      );
-    }
-
-    if (prompt.length < 10 || prompt.length > 2000) {
-      throw new Error("Your prompt must contain 10–2000 characters.");
-    }
-
-    if (![8, 10].includes(duration)) {
-      throw new Error("Please select 8 seconds or 10 seconds.");
-    }
-
-    if (![
-      "text_to_video",
-      "first_frame",
-      "first_last_frame",
-      "reference_media"
-    ].includes(creationMode)) {
-      throw new Error("Please select a valid video creation mode.");
-    }
-
-    if (creationMode === "first_frame" && !firstFrame) {
-      throw new Error("Please select a first-frame image.");
-    }
-
-    if (
-      creationMode === "first_last_frame" &&
-      (!firstFrame || !lastFrame)
-    ) {
-      throw new Error("Please select both frame images.");
-    }
-
-    if (
-      creationMode === "reference_media" &&
-      !referenceImage &&
-      !referenceVideo
-    ) {
-      throw new Error("Please select a reference image or video.");
-    }
-
-    validateFile(referenceImage, "image");
-    validateFile(firstFrame, "image");
-    validateFile(lastFrame, "image");
-    validateFile(referenceVideo, "video");
-
-    submitButton.disabled = true;
-    submitButton.textContent = "Uploading and submitting...";
-
-    const requestId = crypto.randomUUID();
-    const token = session.access_token;
-
-    const referenceImagePath = await uploadFile(
-      referenceImage,
-      user.id,
-      requestId,
-      "reference-image",
-      token
-    );
-
-    const firstFramePath = await uploadFile(
-      firstFrame,
-      user.id,
-      requestId,
-      "first-frame",
-      token
-    );
-
-    const lastFramePath = await uploadFile(
-      lastFrame,
-      user.id,
-      requestId,
-      "last-frame",
-      token
-    );
-
-    const referenceVideoPath = await uploadFile(
-      referenceVideo,
-      user.id,
-      requestId,
-      "reference-video",
-      token
-    );
-
-    const request = {
-      id: requestId,
-      user_id: user.id,
-      model: normalizeModel(data.get("model")),
-      prompt,
-      duration_seconds: duration,
-      aspect_ratio: normalizeRatio(data.get("ratio")),
-      visual_style: String(data.get("style") || ""),
-      audio_preference: String(data.get("audio") || ""),
-      intended_platform: String(data.get("useCase") || ""),
-      customer_name: customerName,
-      email,
-      creation_mode: creationMode,
-      reference_image_path: referenceImagePath,
-      first_frame_path: firstFramePath,
-      last_frame_path: lastFramePath,
-      reference_video_path: referenceVideoPath,
-      status: "pending",
-      final_video_url: null
-    };
-
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/video_requests`,
-      {
-        method: "POST",
-        headers: {
-          apikey: SUPABASE_PUBLISHABLE_KEY,
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          Prefer: "return=minimal"
-        },
-        body: JSON.stringify(request)
+      if (!session?.user || !session.access_token) {
+        throw new Error("Please sign in before submitting a request.");
       }
-    );
 
-    if (!response.ok) {
-      const details = await response.text();
+      const user = session.user;
+      const data = new FormData(form);
+      const prompt = promptInput?.value.trim() || "";
+      const creationMode = String(
+        data.get("creationMode") || "text_to_video"
+      );
+      const durationValue = String(data.get("duration") || "");
+      const durationMatch = durationValue.match(/\d+/);
+      const duration = durationMatch ? Number(durationMatch[0]) : NaN;
 
-      console.error(
-        "Request submission error:",
-        response.status,
-        details
+      const referenceImage = referenceInput?.files?.[0] || null;
+      const firstFrame = firstFrameInput?.files?.[0] || null;
+      const lastFrame = lastFrameInput?.files?.[0] || null;
+      const referenceVideo = referenceVideoInput?.files?.[0] || null;
+
+      // Use the saved name when present. Older accounts may not have one.
+      const customerName = getCustomerName(user);
+      const email = String(user.email || "").trim();
+
+      if (!email) {
+        throw new Error(
+          "Your account email could not be found. Please sign out and sign in again."
+        );
+      }
+
+      if (prompt.length < 10 || prompt.length > 2000) {
+        throw new Error("Your prompt must contain 10–2000 characters.");
+      }
+
+      if (![8, 10].includes(duration)) {
+        throw new Error("Please select 8 seconds or 10 seconds.");
+      }
+
+      if (![
+        "text_to_video",
+        "first_frame",
+        "first_last_frame",
+        "reference_media"
+      ].includes(creationMode)) {
+        throw new Error("Please select a valid video creation mode.");
+      }
+
+      if (creationMode === "first_frame" && !firstFrame) {
+        throw new Error("Please select a first-frame image.");
+      }
+
+      if (
+        creationMode === "first_last_frame" &&
+        (!firstFrame || !lastFrame)
+      ) {
+        throw new Error("Please select both frame images.");
+      }
+
+      if (
+        creationMode === "reference_media" &&
+        !referenceImage &&
+        !referenceVideo
+      ) {
+        throw new Error("Please select a reference image or video.");
+      }
+
+      validateFile(referenceImage, "image");
+      validateFile(firstFrame, "image");
+      validateFile(lastFrame, "image");
+      validateFile(referenceVideo, "video");
+
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = "Uploading and submitting...";
+      }
+
+      const requestId = crypto.randomUUID();
+      const token = session.access_token;
+
+      const referenceImagePath = await uploadFile(
+        referenceImage, user.id, requestId, "reference-image", token
       );
 
-      throw new Error(
-        `Request submission failed (${response.status}). Please report this code.`
+      const firstFramePath = await uploadFile(
+        firstFrame, user.id, requestId, "first-frame", token
       );
+
+      const lastFramePath = await uploadFile(
+        lastFrame, user.id, requestId, "last-frame", token
+      );
+
+      const referenceVideoPath = await uploadFile(
+        referenceVideo, user.id, requestId, "reference-video", token
+      );
+
+      const request = {
+        id: requestId,
+        user_id: user.id,
+        model: normalizeModel(data.get("model")),
+        prompt,
+        duration_seconds: duration,
+        aspect_ratio: normalizeRatio(data.get("ratio")),
+        visual_style: String(data.get("style") || ""),
+        audio_preference: String(data.get("audio") || ""),
+        intended_platform: String(data.get("useCase") || ""),
+        customer_name: customerName,
+        email,
+        creation_mode: creationMode,
+        reference_image_path: referenceImagePath,
+        first_frame_path: firstFramePath,
+        last_frame_path: lastFramePath,
+        reference_video_path: referenceVideoPath,
+        status: "pending",
+        final_video_url: null
+      };
+
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/video_requests`,
+        {
+          method: "POST",
+          headers: {
+            apikey: SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Prefer: "return=minimal"
+          },
+          body: JSON.stringify(request)
+        }
+      );
+
+      if (!response.ok) {
+        const details = await response.text();
+        console.error(
+          "Request submission error:",
+          response.status,
+          details
+        );
+
+        throw new Error(
+          `Request submission failed (${response.status}). Please report this code.`
+        );
+      }
+
+      const successText = document.getElementById("successText");
+
+      if (successText) {
+        successText.textContent =
+          "Your request has been submitted and is pending review. Video generation does not start automatically.";
+      }
+
+      form.reset();
+      clearImage();
+
+      if (charCount) charCount.textContent = "0 / 2000";
+
+      updateUploadFields();
+
+      if (dialog?.showModal) {
+        dialog.showModal();
+      } else {
+        alert("Your video request has been submitted and is pending review.");
+      }
+    } catch (error) {
+      console.error("Video request error:", error);
+      showError(error.message || "Something went wrong. Please try again.");
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = originalButtonText;
+      }
     }
+  });
+}
 
-    document.getElementById("successText").textContent =
-      "Your request has been submitted and is pending review.";
-
-    form.reset();
-    clearImage();
-    charCount.textContent = "0 / 2000";
-    updateUploadFields();
-    dialog.showModal();
-
-  } catch (error) {
-    showError(error.message || "Something went wrong. Please try again.");
-  } finally {
-    submitButton.disabled = false;
-    submitButton.textContent = originalButtonText;
-  }
+document.getElementById("closeDialog")?.addEventListener("click", () => {
+  dialog?.close();
 });
 
-document.getElementById("closeDialog").addEventListener("click", () => {
-  dialog.close();
-});
-
-form.hidden = true;
-authPanel.hidden = false;
-logoutButton.hidden = true;
+if (form) form.hidden = true;
+if (authPanel) authPanel.hidden = false;
+if (logoutButton) logoutButton.hidden = true;
 
 updateUploadFields();
 
 getCurrentSession().catch((error) => {
   console.error("Session initialization failed:", error);
-
   showAuthMessage(
     "Unable to check your sign-in. Refresh the page and try again."
   );

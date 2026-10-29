@@ -1,3 +1,4 @@
+
 const SUPABASE_URL = "https://laixvuhoyozespdsypke.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   "sb_publishable_UwBjXqHLTs1Oy3wkFz3NlQ_JwRC4heT";
@@ -72,8 +73,10 @@ function clearImage() {
   uploadHint.textContent = "PNG, JPG or WEBP · maximum 50 MB";
 }
 
+/* FIXED: corrected account UI function and brace structure */
 function updateAccountUI(session) {
   currentSession = session;
+
   const signedIn = Boolean(session?.user);
 
   authPanel.hidden = signedIn;
@@ -222,6 +225,7 @@ promptInput.addEventListener("input", () => {
 
 referenceInput.addEventListener("change", () => {
   formMessage.hidden = true;
+
   const file = referenceInput.files?.[0];
 
   if (!file) {
@@ -308,7 +312,10 @@ async function uploadFile(file, userId, requestId, fieldName, token) {
   if (!response.ok) {
     const details = await response.text();
     console.error("Storage upload error:", response.status, details);
-    throw new Error(`Could not upload ${file.name} (${response.status}).`);
+
+    throw new Error(
+      `Could not upload ${file.name} (${response.status}).`
+    );
   }
 
   return path;
@@ -333,15 +340,18 @@ function setFieldVisibility(input, visible) {
   input.hidden = !visible;
 
   const label = input.previousElementSibling;
-  if (label?.tagName === "LABEL") label.hidden = !visible;
+
+  if (label?.tagName === "LABEL") {
+    label.hidden = !visible;
+  }
 }
 
 function updateUploadFields() {
   if (!creationModeSelect) return;
 
   const mode = creationModeSelect.value;
-  const showFirst = mode === "first_frame" ||
-    mode === "first_last_frame";
+  const showFirst =
+    mode === "first_frame" || mode === "first_last_frame";
   const showLast = mode === "first_last_frame";
   const showReference = mode === "reference_media";
 
@@ -359,7 +369,9 @@ function updateUploadFields() {
       !showFirst && !showLast && !showReference;
   }
 
-  if (zone) zone.hidden = !showReference;
+  if (zone) {
+    zone.hidden = !showReference;
+  }
 
   if (!showReference) {
     if (referenceInput) referenceInput.value = "";
@@ -370,8 +382,13 @@ function updateUploadFields() {
     }
   }
 
-  if (!showFirst && firstFrameInput) firstFrameInput.value = "";
-  if (!showLast && lastFrameInput) lastFrameInput.value = "";
+  if (!showFirst && firstFrameInput) {
+    firstFrameInput.value = "";
+  }
+
+  if (!showLast && lastFrameInput) {
+    lastFrameInput.value = "";
+  }
 }
 
 creationModeSelect?.addEventListener("change", updateUploadFields);
@@ -391,10 +408,12 @@ if (zone) {
     zone.style.borderColor = "";
 
     const file = event.dataTransfer.files?.[0];
+
     if (!file) return;
 
     const transfer = new DataTransfer();
     transfer.items.add(file);
+
     referenceInput.files = transfer.files;
     referenceInput.dispatchEvent(new Event("change"));
   });
@@ -422,9 +441,8 @@ form.addEventListener("submit", async (event) => {
     const user = session.user;
     const data = new FormData(form);
     const prompt = promptInput.value.trim();
-    const creationMode = String(
-      data.get("creationMode") || "text_to_video"
-    );
+    const creationMode =
+      String(data.get("creationMode") || "text_to_video");
     const durationValue = String(data.get("duration") || "");
     const durationMatch = durationValue.match(/\d+/);
     const duration = durationMatch ? Number(durationMatch[0]) : NaN;
@@ -492,19 +510,35 @@ form.addEventListener("submit", async (event) => {
     const token = session.access_token;
 
     const referenceImagePath = await uploadFile(
-      referenceImage, user.id, requestId, "reference-image", token
+      referenceImage,
+      user.id,
+      requestId,
+      "reference-image",
+      token
     );
 
     const firstFramePath = await uploadFile(
-      firstFrame, user.id, requestId, "first-frame", token
+      firstFrame,
+      user.id,
+      requestId,
+      "first-frame",
+      token
     );
 
     const lastFramePath = await uploadFile(
-      lastFrame, user.id, requestId, "last-frame", token
+      lastFrame,
+      user.id,
+      requestId,
+      "last-frame",
+      token
     );
 
     const referenceVideoPath = await uploadFile(
-      referenceVideo, user.id, requestId, "reference-video", token
+      referenceVideo,
+      user.id,
+      requestId,
+      "reference-video",
+      token
     );
 
     const request = {
@@ -544,7 +578,13 @@ form.addEventListener("submit", async (event) => {
 
     if (!response.ok) {
       const details = await response.text();
-      console.error("Request submission error:", response.status, details);
+
+      console.error(
+        "Request submission error:",
+        response.status,
+        details
+      );
+
       throw new Error(
         `Request submission failed (${response.status}). Please report this code.`
       );
@@ -558,6 +598,7 @@ form.addEventListener("submit", async (event) => {
     charCount.textContent = "0 / 2000";
     updateUploadFields();
     dialog.showModal();
+
   } catch (error) {
     showError(error.message || "Something went wrong. Please try again.");
   } finally {
@@ -573,10 +614,12 @@ document.getElementById("closeDialog").addEventListener("click", () => {
 form.hidden = true;
 authPanel.hidden = false;
 logoutButton.hidden = true;
+
 updateUploadFields();
 
 getCurrentSession().catch((error) => {
   console.error("Session initialization failed:", error);
+
   showAuthMessage(
     "Unable to check your sign-in. Refresh the page and try again."
   );

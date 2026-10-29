@@ -39,6 +39,11 @@ const extraUploadFields = document.querySelector(".extra-upload-fields");
 const extraUploadHint =
   extraUploadFields?.querySelector(".field-hint");
 
+const dashboardPanel = document.getElementById("dashboardPanel");
+const dashboardMessage = document.getElementById("dashboardMessage");
+const requestList = document.getElementById("requestList");
+const refreshRequests = document.getElementById("refreshRequests");
+
 const yearElement = document.getElementById("year");
 
 if (yearElement) {
@@ -59,6 +64,7 @@ const supabaseClient = window.supabase.createClient(
 );
 
 let currentSession = null;
+let dashboardLoadNumber = 0;
 
 function showAuthMessage(message) {
   if (authMessage) authMessage.textContent = message;
@@ -111,6 +117,21 @@ function updateAccountUI(session) {
     showAuthMessage("You are signed in.");
   }
 
+  if (!signedIn) {
+    if (dashboardPanel) dashboardPanel.hidden = true;
+    if (requestList) requestList.replaceChildren();
+    if (dashboardMessage) {
+      dashboardMessage.textContent = "Sign in to view your requests.";
+    }
+  } else {
+    // Run after the authentication event callback has finished.
+    window.setTimeout(() => {
+      if (currentSession?.user?.id === session.user.id) {
+        loadCustomerRequests();
+      }
+    }, 0);
+  }
+
   updateUploadFields();
 }
 
@@ -121,6 +142,262 @@ async function getCurrentSession() {
 
   updateAccountUI(data.session);
 }
+
+/* CUSTOMER DASHBOARD */
+
+function makeDashboardElement(tag, className, text) {
+  const element = document.createElement(tag);
+
+  if (className) element.className = className;
+  if (text !== undefined) element.textContent = text;
+
+  return element;
+}
+
+function getStatusLabel(request) {
+  switch (request.status) {
+    case "pending":
+      return {
+        label: "Request Received — In Queue",
+        className: "status-pending"
+      };
+
+    case "in_progress":
+      return {
+        label: "Generating Video",
+        className: "status-progress"
+      };
+
+    case "completed":
+      if (getSafeVideoUrl(request.final_video_url)) {
+        return {
+          label: "Ready to Download",
+          className: "status-completed"
+        };
+      }
+
+      return {
+        label: "Completed — Awaiting Delivery Link",
+        className: "status-pending"
+      };
+
+    case "rejected":
+      return {
+        label: "Request Not Approved",
+        className: "status-rejected"
+      };
+
+    default:
+      return {
+        label: "Request Received",
+        className: "status-pending"
+      };
+  }
+}
+
+function getSafeVideoUrl(value) {
+  if (typeof value !== "string" || !value.trim()) return null;
+
+  try {
+    const url = new URL(value);
+
+    if (url.protocol !== "https:" && url.protocol !== "http:") {
+      return null;
+    }
+
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
+function formatRequestDate(value) {
+  if (!value) return "Date unavailable";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Date unavailable";
+  }
+
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
+
+function renderCustomerRequest(request) {
+  const card = makeDashboardElement("article", "request-card");
+  const heading = makeDashboardElement(
+    "div",
+    "request-card-heading"
+  );
+
+  const model = makeDashboardElement(
+    "h3",
+    "request-model",
+    request.model || "Video request"
+  );
+
+  const statusInfo = getStatusLabel(request);
+  const status = makeDashboardElement(
+    "span",
+    `request-status ${statusInfo.className}`,
+    statusInfo.label
+  );
+
+  heading.append(model, status);
+  card.append(heading);
+
+  const date = makeDashboardElement(
+    "p",
+    "request-date",
+    `Submitted: ${formatRequestDate(request.created_at)}`
+  );
+  card.append(date);
+
+  const promptHeading = makeDashboardElement(
+    "h4",
+    "request-detail-heading",
+    "Your prompt"
+  );
+  const prompt = makeDashboardElement(
+    "p",
+    "request-prompt",
+    request.prompt || "No prompt available."
+  );
+
+  card.append(promptHeading, prompt);
+
+  const details = makeDashboardElement("p", "request-details");
+  details.textContent =
+    `${request.duration_seconds ?? "—"} seconds · ` +
+    `${request.aspect_ratio || "—"}`;
+
+  card.append(details);
+
+  const videoUrl = getSafeVideoUrl(request.final_video_url);
+
+  if (request.status === "completed" && videoUrl) {
+    const downloadLink = makeDashboardElement(
+      "a",
+      "button primary",
+      "Download video"
+    );
+
+    downloadLink.href = videoUrl;
+    downloadLink.target = "_blank";
+    downloadLink.rel = "noopener noreferrer";
+    downloadLink.setAttribute("aria-label", "Open your completed video");
+
+    card.append(downloadLink);
+  } else if (
+    request.status === "completed" &&
+    !videoUrl
+  ) {
+    const note = makeDashboardElement(
+      "p",
+      "request-note",
+      "Your request is marked completed, but its video link is not available yet."
+    );
+
+    card.append(note);
+  }
+
+  return card;
+}
+
+async function loadCustomerRequests() {
+  const loadNumber = ++dashboardLoadNumber;
+
+  if (!dashboardPanel || !dashboardMessage || !requestList) {
+    return;
+  }
+
+  const userId = currentSession?.user?.id;
+
+  if (!userId) {
+    dashboardPanel.hidden = true;
+    return;
+  }
+
+  dashboardPanel.hidden = false;
+  dashboardMessage.textContent = "Loading your requests...";
+  requestList.replaceChildren();
+
+  if (refreshRequests) refreshRequests.disabled = true;
+
+  try {
+    const { data: sessionData, error: sessionError } =
+      await supabaseClient.auth.getSession();
+
+    if (sessionError) throw sessionError;
+
+    const session = sessionData.session;
+
+    if (!session?.user || session.user.id !== userId) {
+      return;
+    }
+
+    const { data, error } = await supabaseClient
+      .from("video_requests")
+      .select(
+        "id,created_at,model,prompt,duration_seconds,aspect_ratio,status,final_video_url"
+      )
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    // Ignore results from an older request if the account changed.
+    if (
+      loadNumber !== dashboardLoadNumber ||
+      currentSession?.user?.id !== userId
+    ) {
+      return;
+    }
+
+    requestList.replaceChildren();
+
+    if (!data || data.length === 0) {
+      dashboardMessage.textContent =
+        "No requests yet. Submit your first video request using the form above.";
+      return;
+    }
+
+    dashboardMessage.textContent =
+      `You have ${data.length} video request${data.length === 1 ? "" : "s"}.`;
+
+    for (const request of data) {
+      requestList.append(renderCustomerRequest(request));
+    }
+  } catch (error) {
+    console.error("Could not load customer requests:", error);
+
+    if (loadNumber === dashboardLoadNumber) {
+      dashboardMessage.textContent =
+        "Could not load your requests. Please tap Refresh to try again.";
+    }
+  } finally {
+    if (
+      loadNumber === dashboardLoadNumber &&
+      refreshRequests
+    ) {
+      refreshRequests.disabled = false;
+    }
+  }
+}
+
+if (refreshRequests) {
+  refreshRequests.addEventListener("click", () => {
+    loadCustomerRequests();
+  });
+}
+
+/* SIGN IN */
 
 if (loginButton) {
   loginButton.addEventListener("click", async () => {
@@ -157,6 +434,8 @@ if (loginButton) {
     }
   });
 }
+
+/* CREATE ACCOUNT */
 
 if (signupButton) {
   signupButton.addEventListener("click", async () => {
@@ -216,6 +495,8 @@ if (signupButton) {
   });
 }
 
+/* SIGN OUT */
+
 if (logoutButton) {
   logoutButton.addEventListener("click", async () => {
     logoutButton.disabled = true;
@@ -238,11 +519,15 @@ supabaseClient.auth.onAuthStateChange((_event, session) => {
   updateAccountUI(session);
 });
 
+/* PROMPT CHARACTER COUNTER */
+
 if (promptInput && charCount) {
   promptInput.addEventListener("input", () => {
     charCount.textContent = `${promptInput.value.length} / 2000`;
   });
 }
+
+/* REFERENCE IMAGE PREVIEW */
 
 if (referenceInput) {
   referenceInput.addEventListener("change", () => {
@@ -264,8 +549,18 @@ if (referenceInput) {
       return;
     }
 
-    if (previewImg) previewImg.src = URL.createObjectURL(file);
+    if (previewImg) {
+      if (previewImg.dataset.objectUrl) {
+        URL.revokeObjectURL(previewImg.dataset.objectUrl);
+      }
+
+      const objectUrl = URL.createObjectURL(file);
+      previewImg.src = objectUrl;
+      previewImg.dataset.objectUrl = objectUrl;
+    }
+
     if (fileName) fileName.textContent = file.name;
+
     if (fileSize) {
       fileSize.textContent =
         `${(file.size / 1024 / 1024).toFixed(2)} MB`;
@@ -273,6 +568,7 @@ if (referenceInput) {
 
     if (imagePreview) imagePreview.hidden = false;
     if (uploadTitle) uploadTitle.textContent = "Reference image selected";
+
     if (uploadHint) {
       uploadHint.textContent = "Remove the image or choose another one";
     }
@@ -280,9 +576,12 @@ if (referenceInput) {
 }
 
 document.getElementById("removeImage")?.addEventListener("click", () => {
+  if (referenceInput) referenceInput.value;
   if (referenceInput) referenceInput.value = "";
   clearImage();
 });
+
+/* FILE VALIDATION AND UPLOAD */
 
 function validateFile(file, kind) {
   if (!file) return;
@@ -416,6 +715,8 @@ function updateUploadFields() {
 
 creationModeSelect?.addEventListener("change", updateUploadFields);
 
+/* DRAG AND DROP */
+
 if (zone) {
   zone.addEventListener("dragover", (event) => {
     event.preventDefault();
@@ -439,6 +740,8 @@ if (zone) {
     referenceInput.dispatchEvent(new Event("change"));
   });
 }
+
+/* SUBMIT VIDEO REQUEST */
 
 if (form) {
   form.addEventListener("submit", async (event) => {
@@ -477,7 +780,6 @@ if (form) {
       const lastFrame = lastFrameInput?.files?.[0] || null;
       const referenceVideo = referenceVideoInput?.files?.[0] || null;
 
-      // Use the saved name when present. Older accounts may not have one.
       const customerName = getCustomerName(user);
       const email = String(user.email || "").trim();
 
@@ -619,6 +921,9 @@ if (form) {
       } else {
         alert("Your video request has been submitted and is pending review.");
       }
+
+      // Refresh the customer's dashboard after a successful submission.
+      await loadCustomerRequests();
     } catch (error) {
       console.error("Video request error:", error);
       showError(error.message || "Something went wrong. Please try again.");
@@ -635,9 +940,12 @@ document.getElementById("closeDialog")?.addEventListener("click", () => {
   dialog?.close();
 });
 
+/* INITIAL PAGE STATE */
+
 if (form) form.hidden = true;
 if (authPanel) authPanel.hidden = false;
 if (logoutButton) logoutButton.hidden = true;
+if (dashboardPanel) dashboardPanel.hidden = true;
 
 updateUploadFields();
 
